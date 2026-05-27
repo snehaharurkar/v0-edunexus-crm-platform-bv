@@ -1,6 +1,6 @@
 // Mock data for EduNexus CRM
 
-export type UserRole = 'admin' | 'bde' | 'trainer' | 'executive' | 'student';
+export type UserRole = 'admin' | 'bde' | 'trainer' | 'student';
 
 export interface User {
   id: string;
@@ -84,7 +84,7 @@ export interface Transaction {
   studentId: string;
   studentName: string;
   amount: number;
-  gateway: 'Razorpay' | 'Stripe' | 'PayPal' | 'Bank Transfer';
+  gateway: 'UPI' | 'PhonePe' | 'Paytm' | 'PayPal' | 'Bitcoin';
   status: 'Completed' | 'Pending' | 'Failed' | 'Refunded';
 }
 
@@ -136,11 +136,10 @@ export const mockUsers: User[] = [
   { id: '1', name: 'Admin User', email: 'admin@test.com', role: 'admin', status: 'active', createdAt: '2024-01-15' },
   { id: '2', name: 'Rahul Sharma', email: 'bde@test.com', role: 'bde', status: 'active', createdAt: '2024-02-01' },
   { id: '3', name: 'Priya Verma', email: 'trainer@test.com', role: 'trainer', status: 'active', createdAt: '2024-01-20' },
-  { id: '4', name: 'Amit Kumar', email: 'executive@test.com', role: 'executive', status: 'active', createdAt: '2024-03-01' },
   { id: '5', name: 'Sneha Patel', email: 'student@test.com', role: 'student', status: 'active', createdAt: '2024-03-15' },
   { id: '6', name: 'Vikram Singh', email: 'vikram@test.com', role: 'bde', status: 'active', createdAt: '2024-02-10' },
   { id: '7', name: 'Anjali Gupta', email: 'anjali@test.com', role: 'trainer', status: 'active', createdAt: '2024-02-15' },
-  { id: '8', name: 'Ravi Patel', email: 'ravi@test.com', role: 'trainer', status: 'on leave', createdAt: '2024-01-25' },
+  { id: '8', name: 'Ravi Patel', email: 'ravi@test.com', role: 'trainer', status: 'inactive', createdAt: '2024-01-25' },
   { id: '9', name: 'Neha Singh', email: 'neha@test.com', role: 'student', status: 'active', createdAt: '2024-03-20' },
   { id: '10', name: 'Arjun Reddy', email: 'arjun@test.com', role: 'student', status: 'active', createdAt: '2024-03-25' },
 ];
@@ -220,26 +219,26 @@ export const mockJobs: Job[] = [
 
 // Mock Transactions
 export const mockTransactions: Transaction[] = [
-  { id: '1', date: '2024-03-28', studentId: '5', studentName: 'Sneha Patel', amount: 15000, gateway: 'Razorpay', status: 'Completed' },
-  { id: '2', date: '2024-03-27', studentId: '9', studentName: 'Neha Singh', amount: 25000, gateway: 'Stripe', status: 'Completed' },
-  { id: '3', date: '2024-03-27', studentId: '10', studentName: 'Arjun Reddy', amount: 15000, gateway: 'Razorpay', status: 'Pending' },
+  { id: '1', date: '2024-03-28', studentId: '5', studentName: 'Sneha Patel', amount: 15000, gateway: 'UPI', status: 'Completed' },
+  { id: '2', date: '2024-03-27', studentId: '9', studentName: 'Neha Singh', amount: 25000, gateway: 'PhonePe', status: 'Completed' },
+  { id: '3', date: '2024-03-27', studentId: '10', studentName: 'Arjun Reddy', amount: 15000, gateway: 'Paytm', status: 'Pending' },
   { id: '4', date: '2024-03-26', studentId: '11', studentName: 'Priyanka Chopra', amount: 12000, gateway: 'PayPal', status: 'Completed' },
-  { id: '5', date: '2024-03-26', studentId: '12', studentName: 'Rahul Dravid', amount: 15000, gateway: 'Bank Transfer', status: 'Completed' },
-  { id: '6', date: '2024-03-25', studentId: '13', studentName: 'Virat Kohli', amount: 30000, gateway: 'Razorpay', status: 'Completed' },
-  { id: '7', date: '2024-03-25', studentId: '14', studentName: 'Anushka Sharma', amount: 12500, gateway: 'Stripe', status: 'Pending' },
-  { id: '8', date: '2024-03-24', studentId: '15', studentName: 'MS Dhoni', amount: 18000, gateway: 'Razorpay', status: 'Completed' },
+  { id: '5', date: '2024-03-26', studentId: '12', studentName: 'Rahul Dravid', amount: 15000, gateway: 'UPI', status: 'Completed' },
+  { id: '6', date: '2024-03-25', studentId: '13', studentName: 'Virat Kohli', amount: 30000, gateway: 'PhonePe', status: 'Completed' },
+  { id: '7', date: '2024-03-25', studentId: '14', studentName: 'Anushka Sharma', amount: 12500, gateway: 'Paytm', status: 'Pending' },
+  { id: '8', date: '2024-03-24', studentId: '15', studentName: 'MS Dhoni', amount: 18000, gateway: 'Bitcoin', status: 'Completed' },
   { id: '9', date: '2024-03-24', studentId: '16', studentName: 'Deepika Padukone', amount: 15000, gateway: 'PayPal', status: 'Refunded' },
-  { id: '10', date: '2024-03-23', studentId: '17', studentName: 'Ranveer Singh', amount: 12000, gateway: 'Bank Transfer', status: 'Completed' },
-  { id: '11', date: '2024-03-23', studentId: '18', studentName: 'Alia Bhatt', amount: 25000, gateway: 'Razorpay', status: 'Completed' },
-  { id: '12', date: '2024-03-22', studentId: '19', studentName: 'Ranbir Kapoor', amount: 15000, gateway: 'Stripe', status: 'Failed' },
-  { id: '13', date: '2024-03-22', studentId: '20', studentName: 'Katrina Kaif', amount: 15000, gateway: 'Razorpay', status: 'Completed' },
-  { id: '14', date: '2024-03-21', studentId: '21', studentName: 'Shah Rukh Khan', amount: 12000, gateway: 'Bank Transfer', status: 'Completed' },
-  { id: '15', date: '2024-03-21', studentId: '22', studentName: 'Salman Khan', amount: 9000, gateway: 'Razorpay', status: 'Pending' },
-  { id: '16', date: '2024-03-20', studentId: '5', studentName: 'Sneha Patel', amount: 5000, gateway: 'PayPal', status: 'Completed' },
-  { id: '17', date: '2024-03-19', studentId: '9', studentName: 'Neha Singh', amount: 12500, gateway: 'Stripe', status: 'Completed' },
-  { id: '18', date: '2024-03-18', studentId: '10', studentName: 'Arjun Reddy', amount: 15000, gateway: 'Razorpay', status: 'Completed' },
-  { id: '19', date: '2024-03-17', studentId: '11', studentName: 'Priyanka Chopra', amount: 6000, gateway: 'Bank Transfer', status: 'Refunded' },
-  { id: '20', date: '2024-03-16', studentId: '12', studentName: 'Rahul Dravid', amount: 7500, gateway: 'Razorpay', status: 'Completed' },
+  { id: '10', date: '2024-03-23', studentId: '17', studentName: 'Ranveer Singh', amount: 12000, gateway: 'UPI', status: 'Completed' },
+  { id: '11', date: '2024-03-23', studentId: '18', studentName: 'Alia Bhatt', amount: 25000, gateway: 'PhonePe', status: 'Completed' },
+  { id: '12', date: '2024-03-22', studentId: '19', studentName: 'Ranbir Kapoor', amount: 15000, gateway: 'Paytm', status: 'Failed' },
+  { id: '13', date: '2024-03-22', studentId: '20', studentName: 'Katrina Kaif', amount: 15000, gateway: 'UPI', status: 'Completed' },
+  { id: '14', date: '2024-03-21', studentId: '21', studentName: 'Shah Rukh Khan', amount: 12000, gateway: 'Bitcoin', status: 'Completed' },
+  { id: '15', date: '2024-03-21', studentId: '22', studentName: 'Salman Khan', amount: 9000, gateway: 'PayPal', status: 'Pending' },
+  { id: '16', date: '2024-03-20', studentId: '5', studentName: 'Sneha Patel', amount: 5000, gateway: 'PhonePe', status: 'Completed' },
+  { id: '17', date: '2024-03-19', studentId: '9', studentName: 'Neha Singh', amount: 12500, gateway: 'Paytm', status: 'Completed' },
+  { id: '18', date: '2024-03-18', studentId: '10', studentName: 'Arjun Reddy', amount: 15000, gateway: 'UPI', status: 'Completed' },
+  { id: '19', date: '2024-03-17', studentId: '11', studentName: 'Priyanka Chopra', amount: 6000, gateway: 'Bitcoin', status: 'Refunded' },
+  { id: '20', date: '2024-03-16', studentId: '12', studentName: 'Rahul Dravid', amount: 7500, gateway: 'UPI', status: 'Completed' },
 ];
 
 // Mock Tickets

@@ -17,6 +17,17 @@ import {
 } from '@/components/ui/select';
 import { DollarSign, Clock, RotateCcw, FileText } from 'lucide-react';
 
+const getGatewayColor = (gateway: string) => {
+  switch (gateway) {
+    case 'UPI': return 'bg-green-500/10 text-green-600'
+    case 'PhonePe': return 'bg-purple-500/10 text-purple-600'
+    case 'Paytm': return 'bg-blue-500/10 text-blue-600'
+    case 'PayPal': return 'bg-indigo-500/10 text-indigo-600'
+    case 'Bitcoin': return 'bg-orange-500/10 text-orange-600'
+    default: return 'bg-gray-500/10 text-gray-600'
+  }
+}
+
 export default function FinancePage() {
   const [loading, setLoading] = useState(true);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -83,7 +94,9 @@ export default function FinancePage() {
       key: 'gateway',
       label: 'Gateway',
       render: (t: Transaction) => (
-        <StatusBadge variant="default">{t.gateway}</StatusBadge>
+        <span className={`rounded-full px-2 py-1 text-xs font-medium ${getGatewayColor(t.gateway)}`}>
+          {t.gateway}
+        </span>
       ),
     },
     {
@@ -174,10 +187,11 @@ export default function FinancePage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Gateways</SelectItem>
-                <SelectItem value="Razorpay">Razorpay</SelectItem>
-                <SelectItem value="Stripe">Stripe</SelectItem>
+                <SelectItem value="UPI">UPI</SelectItem>
+                <SelectItem value="PhonePe">PhonePe</SelectItem>
+                <SelectItem value="Paytm">Paytm</SelectItem>
                 <SelectItem value="PayPal">PayPal</SelectItem>
-                <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
+                <SelectItem value="Bitcoin">Bitcoin</SelectItem>
               </SelectContent>
             </Select>
           </div>

@@ -4,223 +4,207 @@ import { useState, useEffect } from "react"
 import { DashboardLayout } from "@/components/shared/dashboard-layout"
 import { studentNavItems } from "@/lib/nav-items"
 import { Modal } from "@/components/shared/modal"
-import { useAuth } from "@/contexts/auth-context"
+import { mockCourses, mockTrainers } from "@/lib/mock-data"
 import {
   HelpCircle,
-  Plus,
   MessageSquare,
   Clock,
   CheckCircle,
   AlertCircle,
   Send,
+  Paperclip,
+  User,
+  BookOpen,
+  Briefcase,
+  Loader2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { toast } from "sonner"
 
 function Skeleton({ className }: { className?: string }) {
   return <div className={`animate-pulse rounded bg-muted ${className}`} />
 }
 
-interface Ticket {
+interface Query {
   id: string
+  to: "trainer" | "bde"
+  course?: string
+  trainer?: string
+  type: string
   subject: string
-  category: string
-  status: "open" | "in_progress" | "resolved"
-  priority: "low" | "medium" | "high"
+  message: string
+  attachment?: string
+  status: "Pending" | "Answered" | "Closed"
   createdAt: string
-  lastUpdate: string
-  messages: Array<{
-    id: string
-    sender: string
-    content: string
-    timestamp: string
-    isStaff: boolean
-  }>
+  replies: { sender: string; message: string; timestamp: string }[]
 }
 
-const mockTickets: Ticket[] = [
+const mockStudentQueries: Query[] = [
   {
-    id: "TKT-001",
-    subject: "Unable to access course recordings",
-    category: "Technical",
-    status: "in_progress",
-    priority: "high",
-    createdAt: "May 24, 2024",
-    lastUpdate: "May 25, 2024",
-    messages: [
-      {
-        id: "1",
-        sender: "You",
-        content: "I cannot access the React Advanced course recordings. Getting a 403 error.",
-        timestamp: "May 24, 2024 10:30 AM",
-        isStaff: false,
-      },
-      {
-        id: "2",
-        sender: "Support Team",
-        content: "Hi! We're looking into this issue. Could you please try clearing your browser cache and try again?",
-        timestamp: "May 25, 2024 09:15 AM",
-        isStaff: true,
-      },
-    ],
+    id: "SQ-001",
+    to: "trainer",
+    course: "React Mastery",
+    trainer: "Priya Verma",
+    type: "Doubt",
+    subject: "Confusion about useEffect cleanup",
+    message: "I don't understand when the cleanup function in useEffect runs. Can you explain with an example?",
+    status: "Answered",
+    createdAt: "2024-03-28 10:30",
+    replies: [
+      { sender: "Trainer", message: "Great question! The cleanup function runs before the component unmounts AND before each re-render. It's used to clean up subscriptions, timers, etc.", timestamp: "2024-03-28 14:00" }
+    ]
   },
   {
-    id: "TKT-002",
-    subject: "Certificate not showing after course completion",
-    category: "Academic",
-    status: "resolved",
-    priority: "medium",
-    createdAt: "May 20, 2024",
-    lastUpdate: "May 22, 2024",
-    messages: [
-      {
-        id: "1",
-        sender: "You",
-        content: "I completed the Node.js course but my certificate is not appearing.",
-        timestamp: "May 20, 2024 02:00 PM",
-        isStaff: false,
-      },
-      {
-        id: "2",
-        sender: "Support Team",
-        content: "Your certificate has been generated and should now be visible in the Certificates section.",
-        timestamp: "May 22, 2024 11:00 AM",
-        isStaff: true,
-      },
-    ],
+    id: "SQ-002",
+    to: "trainer",
+    course: "React Mastery",
+    trainer: "Priya Verma",
+    type: "Assignment Help",
+    subject: "Help with Assignment 3",
+    message: "I'm stuck on the API integration part. Getting a network error.",
+    attachment: "assignment3.js",
+    status: "Pending",
+    createdAt: "2024-03-27 16:45",
+    replies: []
   },
   {
-    id: "TKT-003",
-    subject: "Request for deadline extension",
-    category: "Academic",
-    status: "open",
-    priority: "low",
-    createdAt: "May 26, 2024",
-    lastUpdate: "May 26, 2024",
-    messages: [
-      {
-        id: "1",
-        sender: "You",
-        content: "Due to personal circumstances, I need a 3-day extension for the current assignment.",
-        timestamp: "May 26, 2024 04:30 PM",
-        isStaff: false,
-      },
-    ],
+    id: "SQ-003",
+    to: "bde",
+    type: "Payment Issue",
+    subject: "EMI payment not reflecting",
+    message: "I made my EMI payment on March 25 but it's not showing in my account. Transaction ID: TXN123456",
+    status: "Answered",
+    createdAt: "2024-03-26 11:00",
+    replies: [
+      { sender: "BDE", message: "Hi! I've checked your payment. It has been verified and your account is now updated. Thank you!", timestamp: "2024-03-26 15:30" }
+    ]
+  },
+  {
+    id: "SQ-004",
+    to: "bde",
+    type: "Course Info",
+    subject: "Switching to weekend batch",
+    message: "Due to my job change, I need to switch from weekday to weekend batch. Is this possible?",
+    status: "Closed",
+    createdAt: "2024-03-24 09:30",
+    replies: [
+      { sender: "BDE", message: "Yes, you can switch! I've processed your request. Your new batch starts this Saturday.", timestamp: "2024-03-24 14:00" },
+      { sender: "Student", message: "Thank you so much!", timestamp: "2024-03-24 14:30" }
+    ]
   },
 ]
 
-const categories = ["Technical", "Academic", "Billing", "Career Services", "Other"]
+const trainerQueryTypes = ["Doubt", "Assignment Help", "Technical Issue", "Other"]
+const bdeQueryTypes = ["Payment Issue", "Course Info", "Enrollment", "Refund", "Other"]
 
 export default function StudentSupport() {
-  const { user } = useAuth()
   const [isLoading, setIsLoading] = useState(true)
-  const [tickets, setTickets] = useState<Ticket[]>(mockTickets)
-  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null)
-  const [isNewTicketOpen, setIsNewTicketOpen] = useState(false)
+  const [activeTab, setActiveTab] = useState<"trainer" | "bde">("trainer")
+  const [queries, setQueries] = useState<Query[]>(mockStudentQueries)
+  const [selectedQuery, setSelectedQuery] = useState<Query | null>(null)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
-  const [replyMessage, setReplyMessage] = useState("")
-  const [newTicket, setNewTicket] = useState({
+  const [replyText, setReplyText] = useState("")
+  const [isSending, setIsSending] = useState(false)
+  
+  // New query form state
+  const [newQuery, setNewQuery] = useState({
+    course: "",
+    type: "",
     subject: "",
-    category: "Technical",
-    description: "",
-    priority: "medium" as const,
+    message: "",
+    attachment: "",
   })
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
     const timer = setTimeout(() => setIsLoading(false), 800)
     return () => clearTimeout(timer)
   }, [])
 
-  const handleCreateTicket = () => {
-    const ticket: Ticket = {
-      id: `TKT-${String(tickets.length + 1).padStart(3, "0")}`,
-      subject: newTicket.subject,
-      category: newTicket.category,
-      status: "open",
-      priority: newTicket.priority,
-      createdAt: new Date().toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      }),
-      lastUpdate: new Date().toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      }),
-      messages: [
-        {
-          id: "1",
-          sender: "You",
-          content: newTicket.description,
-          timestamp: new Date().toLocaleString("en-US", {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-            hour: "numeric",
-            minute: "2-digit",
-            hour12: true,
-          }),
-          isStaff: false,
-        },
-      ],
+  const filteredQueries = queries.filter(q => q.to === activeTab)
+
+  const handleSubmitQuery = async () => {
+    if (!newQuery.type || !newQuery.subject || !newQuery.message) {
+      toast.error("Please fill all required fields")
+      return
     }
-    setTickets([ticket, ...tickets])
-    setIsNewTicketOpen(false)
-    setNewTicket({ subject: "", category: "Technical", description: "", priority: "medium" })
+    if (activeTab === "trainer" && !newQuery.course) {
+      toast.error("Please select a course")
+      return
+    }
+    
+    setIsSubmitting(true)
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    
+    const course = mockCourses.find(c => c.id === newQuery.course)
+    const trainer = mockTrainers.find(t => t.id === course?.trainerId)
+    
+    const query: Query = {
+      id: `SQ-${String(queries.length + 1).padStart(3, "0")}`,
+      to: activeTab,
+      course: course?.title,
+      trainer: trainer?.name,
+      type: newQuery.type,
+      subject: newQuery.subject,
+      message: newQuery.message,
+      attachment: newQuery.attachment,
+      status: "Pending",
+      createdAt: new Date().toLocaleString(),
+      replies: []
+    }
+    
+    setQueries([query, ...queries])
+    setNewQuery({ course: "", type: "", subject: "", message: "", attachment: "" })
+    setIsSubmitting(false)
+    toast.success("Query submitted successfully!")
   }
 
-  const handleSendReply = () => {
-    if (!replyMessage.trim() || !selectedTicket) return
-    const updatedTicket = {
-      ...selectedTicket,
-      messages: [
-        ...selectedTicket.messages,
-        {
-          id: String(selectedTicket.messages.length + 1),
-          sender: "You",
-          content: replyMessage,
-          timestamp: new Date().toLocaleString("en-US", {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-            hour: "numeric",
-            minute: "2-digit",
-            hour12: true,
-          }),
-          isStaff: false,
-        },
-      ],
-      lastUpdate: new Date().toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      }),
+  const handleSendReply = async () => {
+    if (!replyText.trim() || !selectedQuery) return
+    
+    setIsSending(true)
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    
+    const updatedQuery = {
+      ...selectedQuery,
+      replies: [...selectedQuery.replies, {
+        sender: "Student",
+        message: replyText,
+        timestamp: new Date().toLocaleString()
+      }]
     }
-    setTickets(tickets.map((t) => (t.id === selectedTicket.id ? updatedTicket : t)))
-    setSelectedTicket(updatedTicket)
-    setReplyMessage("")
+    
+    setQueries(prev => prev.map(q => q.id === selectedQuery.id ? updatedQuery : q))
+    setSelectedQuery(updatedQuery)
+    setReplyText("")
+    setIsSending(false)
+    toast.success("Reply sent!")
   }
 
-  const getStatusIcon = (status: Ticket["status"]) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
-      case "open":
-        return <AlertCircle className="h-4 w-4 text-yellow-500" />
-      case "in_progress":
-        return <Clock className="h-4 w-4 text-blue-500" />
-      case "resolved":
-        return <CheckCircle className="h-4 w-4 text-green-500" />
+      case "Pending": return "bg-yellow-500/10 text-yellow-600"
+      case "Answered": return "bg-blue-500/10 text-blue-600"
+      case "Closed": return "bg-green-500/10 text-green-600"
+      default: return "bg-gray-500/10 text-gray-600"
     }
   }
 
-  const getStatusColor = (status: Ticket["status"]) => {
+  const getStatusIcon = (status: string) => {
     switch (status) {
-      case "open":
-        return "bg-yellow-500/10 text-yellow-600"
-      case "in_progress":
-        return "bg-blue-500/10 text-blue-600"
-      case "resolved":
-        return "bg-green-500/10 text-green-600"
+      case "Pending": return <Clock className="h-4 w-4" />
+      case "Answered": return <MessageSquare className="h-4 w-4" />
+      case "Closed": return <CheckCircle className="h-4 w-4" />
+      default: return <AlertCircle className="h-4 w-4" />
     }
   }
 
@@ -229,11 +213,10 @@ export default function StudentSupport() {
       <DashboardLayout navItems={studentNavItems} roleLabel="Student">
         <div className="space-y-6">
           <Skeleton className="h-8 w-48" />
-          <Skeleton className="h-10 w-32" />
-          <div className="space-y-3">
-            {[1, 2, 3].map((i) => (
-              <Skeleton key={i} className="h-24" />
-            ))}
+          <Skeleton className="h-10 w-64" />
+          <div className="grid gap-6 lg:grid-cols-2">
+            <Skeleton className="h-[400px]" />
+            <Skeleton className="h-[400px]" />
           </div>
         </div>
       </DashboardLayout>
@@ -241,207 +224,276 @@ export default function StudentSupport() {
   }
 
   return (
-    <DashboardLayout role="student">
+    <DashboardLayout navItems={studentNavItems} roleLabel="Student">
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div>
           <h1 className="text-2xl font-bold">Support Center</h1>
-          <Button onClick={() => setIsNewTicketOpen(true)} className="gap-2">
-            <Plus className="h-4 w-4" />
-            Raise Ticket
-          </Button>
+          <p className="text-muted-foreground">Get help from trainers and BDEs</p>
         </div>
 
-        {/* Tickets List */}
-        <div className="space-y-3">
-          {tickets.map((ticket) => (
-            <div
-              key={ticket.id}
-              onClick={() => {
-                setSelectedTicket(ticket)
-                setIsDetailOpen(true)
-              }}
-              className="cursor-pointer rounded-xl border bg-card p-4 transition-shadow hover:shadow-md"
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex items-start gap-3">
-                  <div className="rounded-lg bg-muted p-2">
-                    <HelpCircle className="h-5 w-5 text-muted-foreground" />
-                  </div>
-                  <div>
-                    <h3 className="font-medium">{ticket.subject}</h3>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {ticket.id} • {ticket.category} • Created {ticket.createdAt}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium ${getStatusColor(
-                      ticket.status
-                    )}`}
-                  >
-                    {getStatusIcon(ticket.status)}
-                    {ticket.status.replace("_", " ")}
-                  </span>
-                </div>
+        {/* Tabs */}
+        <div className="flex gap-2 border-b">
+          <button
+            onClick={() => setActiveTab("trainer")}
+            className={`flex items-center gap-2 px-4 py-2 font-medium transition-colors ${
+              activeTab === "trainer"
+                ? "border-b-2 border-primary text-primary"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <BookOpen className="h-4 w-4" />
+            Ask Trainer
+          </button>
+          <button
+            onClick={() => setActiveTab("bde")}
+            className={`flex items-center gap-2 px-4 py-2 font-medium transition-colors ${
+              activeTab === "bde"
+                ? "border-b-2 border-primary text-primary"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Briefcase className="h-4 w-4" />
+            Ask BDE
+          </button>
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-2">
+          {/* New Query Form */}
+          <div className="space-y-4 rounded-xl border bg-card p-6">
+            <h2 className="text-lg font-semibold">
+              {activeTab === "trainer" ? "Ask Your Trainer" : "Ask Your BDE"}
+            </h2>
+            
+            {activeTab === "trainer" && (
+              <div className="space-y-2">
+                <Label>Select Course/Subject</Label>
+                <Select value={newQuery.course} onValueChange={v => setNewQuery({ ...newQuery, course: v })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose course..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {mockCourses.filter(c => c.status === "Active").map(course => (
+                      <SelectItem key={course.id} value={course.id}>
+                        {course.title} - {course.trainer}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-              <div className="mt-3 flex items-center gap-4 text-sm text-muted-foreground">
-                <span className="flex items-center gap-1">
-                  <MessageSquare className="h-4 w-4" />
-                  {ticket.messages.length} messages
-                </span>
-                <span>Last update: {ticket.lastUpdate}</span>
-              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label>Query Type</Label>
+              <Select value={newQuery.type} onValueChange={v => setNewQuery({ ...newQuery, type: v })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select type..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {(activeTab === "trainer" ? trainerQueryTypes : bdeQueryTypes).map(type => (
+                    <SelectItem key={type} value={type}>{type}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-          ))}
-        </div>
 
-        {tickets.length === 0 && (
-          <div className="flex flex-col items-center justify-center rounded-xl border bg-card py-12">
-            <HelpCircle className="h-12 w-12 text-muted-foreground" />
-            <h3 className="mt-4 text-lg font-medium">No tickets yet</h3>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Create a support ticket if you need help
-            </p>
-          </div>
-        )}
-
-        {/* New Ticket Modal */}
-        <Modal
-          open={isNewTicketOpen}
-          onClose={() => setIsNewTicketOpen(false)}
-          title="Raise Support Ticket"
-        >
-          <div className="space-y-4">
-            <div>
-              <label className="mb-1 block text-sm font-medium">Subject</label>
+            <div className="space-y-2">
+              <Label>Subject</Label>
               <Input
-                value={newTicket.subject}
-                onChange={(e) =>
-                  setNewTicket({ ...newTicket, subject: e.target.value })
-                }
-                placeholder="Brief description of your issue"
+                value={newQuery.subject}
+                onChange={e => setNewQuery({ ...newQuery, subject: e.target.value })}
+                placeholder="Brief subject of your query..."
               />
             </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium">Category</label>
-              <select
-                value={newTicket.category}
-                onChange={(e) =>
-                  setNewTicket({ ...newTicket, category: e.target.value })
-                }
-                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-              >
-                {categories.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium">Priority</label>
-              <select
-                value={newTicket.priority}
-                onChange={(e) =>
-                  setNewTicket({
-                    ...newTicket,
-                    priority: e.target.value as "low" | "medium" | "high",
-                  })
-                }
-                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-              >
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-              </select>
-            </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium">Description</label>
+
+            <div className="space-y-2">
+              <Label>Message</Label>
               <textarea
-                value={newTicket.description}
-                onChange={(e) =>
-                  setNewTicket({ ...newTicket, description: e.target.value })
-                }
-                placeholder="Describe your issue in detail..."
-                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-                rows={4}
+                value={newQuery.message}
+                onChange={e => setNewQuery({ ...newQuery, message: e.target.value })}
+                placeholder="Describe your query in detail..."
+                className="min-h-[120px] w-full rounded-md border bg-background px-3 py-2 text-sm"
               />
             </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setIsNewTicketOpen(false)}>
-                Cancel
-              </Button>
-              <Button
-                onClick={handleCreateTicket}
-                disabled={!newTicket.subject || !newTicket.description}
-              >
-                Submit Ticket
-              </Button>
-            </div>
-          </div>
-        </Modal>
 
-        {/* Ticket Detail Modal */}
-        <Modal
-          open={isDetailOpen}
-          onClose={() => setIsDetailOpen(false)}
-          title={selectedTicket?.subject || "Ticket Details"}
-        >
-          {selectedTicket && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between rounded-lg bg-muted/50 p-3">
-                <div className="space-y-1 text-sm">
-                  <p>
-                    <span className="text-muted-foreground">Ticket ID:</span>{" "}
-                    {selectedTicket.id}
-                  </p>
-                  <p>
-                    <span className="text-muted-foreground">Category:</span>{" "}
-                    {selectedTicket.category}
-                  </p>
+            {activeTab === "trainer" && (
+              <div className="space-y-2">
+                <Label>Attachment (optional)</Label>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <Paperclip className="h-4 w-4" />
+                    Attach File
+                  </Button>
+                  {newQuery.attachment && (
+                    <span className="text-sm text-muted-foreground">{newQuery.attachment}</span>
+                  )}
                 </div>
-                <span
-                  className={`flex items-center gap-1 rounded-full px-3 py-1 text-sm font-medium ${getStatusColor(
-                    selectedTicket.status
-                  )}`}
-                >
-                  {getStatusIcon(selectedTicket.status)}
-                  {selectedTicket.status.replace("_", " ")}
-                </span>
               </div>
+            )}
 
-              {/* Messages Thread */}
-              <div className="max-h-64 space-y-3 overflow-y-auto">
-                {selectedTicket.messages.map((msg) => (
+            <Button onClick={handleSubmitQuery} disabled={isSubmitting} className="w-full">
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Submitting...
+                </>
+              ) : (
+                <>
+                  <Send className="mr-2 h-4 w-4" />
+                  Submit Query
+                </>
+              )}
+            </Button>
+          </div>
+
+          {/* Queries List */}
+          <div className="space-y-4 rounded-xl border bg-card p-6">
+            <h2 className="text-lg font-semibold">
+              {activeTab === "trainer" ? "Trainer Queries" : "BDE Queries"}
+            </h2>
+            
+            <div className="space-y-3 max-h-[400px] overflow-y-auto">
+              {filteredQueries.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <HelpCircle className="h-10 w-10 text-muted-foreground mb-2" />
+                  <p className="text-muted-foreground">No queries yet</p>
+                  <p className="text-sm text-muted-foreground">Submit your first query above</p>
+                </div>
+              ) : (
+                filteredQueries.map(query => (
                   <div
-                    key={msg.id}
-                    className={`rounded-lg p-3 ${
-                      msg.isStaff ? "bg-primary/10 ml-4" : "bg-muted mr-4"
-                    }`}
+                    key={query.id}
+                    onClick={() => {
+                      setSelectedQuery(query)
+                      setIsDetailOpen(true)
+                    }}
+                    className="cursor-pointer rounded-lg border p-3 transition-colors hover:bg-muted/50"
                   >
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="font-medium">{msg.sender}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {msg.timestamp}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1">
+                        <h4 className="font-medium text-sm">{query.subject}</h4>
+                        {query.trainer && (
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            Trainer: {query.trainer}
+                          </p>
+                        )}
+                        <p className="text-xs text-muted-foreground truncate mt-1">
+                          {query.message}
+                        </p>
+                      </div>
+                      <span className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${getStatusColor(query.status)}`}>
+                        {getStatusIcon(query.status)}
+                        {query.status}
                       </span>
                     </div>
-                    <p className="mt-1 text-sm">{msg.content}</p>
+                    <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                      <span>{query.type}</span>
+                      <span>{query.createdAt}</span>
+                      <span>{query.replies.length} replies</span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Query Detail Modal */}
+        <Modal
+          open={isDetailOpen}
+          onClose={() => {
+            setIsDetailOpen(false)
+            setSelectedQuery(null)
+            setReplyText("")
+          }}
+          title={selectedQuery?.subject || "Query Details"}
+        >
+          {selectedQuery && (
+            <div className="space-y-4">
+              {/* Query Info */}
+              <div className="flex items-center justify-between rounded-lg bg-muted/50 p-3">
+                <div className="space-y-1 text-sm">
+                  <p className="flex items-center gap-2">
+                    <span className="text-muted-foreground">Type:</span>
+                    <span className="font-medium">{selectedQuery.type}</span>
+                  </p>
+                  {selectedQuery.trainer && (
+                    <p className="flex items-center gap-2">
+                      <span className="text-muted-foreground">Trainer:</span>
+                      <span className="font-medium">{selectedQuery.trainer}</span>
+                    </p>
+                  )}
+                  <p className="flex items-center gap-2">
+                    <span className="text-muted-foreground">Date:</span>
+                    <span>{selectedQuery.createdAt}</span>
+                  </p>
+                </div>
+                <span className={`flex items-center gap-1 rounded-full px-3 py-1 text-sm font-medium ${getStatusColor(selectedQuery.status)}`}>
+                  {getStatusIcon(selectedQuery.status)}
+                  {selectedQuery.status}
+                </span>
+              </div>
+
+              {/* Conversation Thread */}
+              <div className="space-y-3 max-h-60 overflow-y-auto">
+                {/* Original Message */}
+                <div className="rounded-lg border p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-medium text-sm flex items-center gap-2">
+                      <User className="h-4 w-4" />
+                      You
+                    </span>
+                    <span className="text-xs text-muted-foreground">{selectedQuery.createdAt}</span>
+                  </div>
+                  <p className="text-sm">{selectedQuery.message}</p>
+                  {selectedQuery.attachment && (
+                    <p className="text-xs text-primary mt-2 flex items-center gap-1">
+                      <Paperclip className="h-3 w-3" />
+                      {selectedQuery.attachment}
+                    </p>
+                  )}
+                </div>
+
+                {/* Replies */}
+                {selectedQuery.replies.map((reply, idx) => (
+                  <div
+                    key={idx}
+                    className={`rounded-lg border p-3 ${
+                      reply.sender === "Student" ? "bg-muted/50 mr-4" : "bg-primary/5 ml-4"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-medium text-sm flex items-center gap-2">
+                        <User className="h-4 w-4" />
+                        {reply.sender === "Student" ? "You" : reply.sender}
+                      </span>
+                      <span className="text-xs text-muted-foreground">{reply.timestamp}</span>
+                    </div>
+                    <p className="text-sm">{reply.message}</p>
                   </div>
                 ))}
               </div>
 
               {/* Reply Input */}
-              {selectedTicket.status !== "resolved" && (
-                <div className="flex gap-2">
-                  <Input
-                    value={replyMessage}
-                    onChange={(e) => setReplyMessage(e.target.value)}
+              {selectedQuery.status !== "Closed" && (
+                <div className="space-y-2">
+                  <textarea
+                    value={replyText}
+                    onChange={e => setReplyText(e.target.value)}
                     placeholder="Type your reply..."
-                    onKeyDown={(e) => e.key === "Enter" && handleSendReply()}
+                    className="min-h-[80px] w-full rounded-md border bg-background px-3 py-2 text-sm"
                   />
-                  <Button onClick={handleSendReply} disabled={!replyMessage.trim()}>
-                    <Send className="h-4 w-4" />
+                  <Button onClick={handleSendReply} disabled={isSending || !replyText.trim()}>
+                    {isSending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Sending...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="mr-2 h-4 w-4" />
+                        Send Reply
+                      </>
+                    )}
                   </Button>
                 </div>
               )}

@@ -21,7 +21,6 @@ const roleOptions: { value: UserRole; label: string; email: string }[] = [
   { value: 'admin', label: 'Admin', email: 'admin@test.com' },
   { value: 'bde', label: 'BDE (Sales)', email: 'bde@test.com' },
   { value: 'trainer', label: 'Trainer', email: 'trainer@test.com' },
-  { value: 'executive', label: 'Executive', email: 'executive@test.com' },
   { value: 'student', label: 'Student', email: 'student@test.com' },
 ];
 
@@ -29,7 +28,6 @@ const roleDashboardPaths: Record<UserRole, string> = {
   admin: '/admin/dashboard',
   bde: '/bde/dashboard',
   trainer: '/trainer/dashboard',
-  executive: '/executive/dashboard',
   student: '/student/dashboard',
 };
 
