@@ -18,7 +18,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
   Download,
-  Checkbox,
+  Check,
 } from 'lucide-react';
 
 interface Column<T> {
@@ -180,7 +180,7 @@ export function DataTable<T extends { id: string }>({
                     )}
                   >
                     {selectedIds.size === paginatedData.length && paginatedData.length > 0 && (
-                      <Checkbox className="h-3 w-3 text-primary-foreground" />
+                      <Check className="h-3 w-3 text-primary-foreground" />
                     )}
                   </button>
                 </th>
@@ -229,7 +229,7 @@ export function DataTable<T extends { id: string }>({
                         )}
                       >
                         {selectedIds.has(item.id) && (
-                          <Checkbox className="h-3 w-3 text-primary-foreground" />
+                          <Check className="h-3 w-3 text-primary-foreground" />
                         )}
                       </button>
                     </td>
