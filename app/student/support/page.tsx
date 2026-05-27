@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { DashboardLayout } from "@/components/shared/dashboard-layout"
+import { studentNavItems } from "@/lib/nav-items"
 import { Modal } from "@/components/shared/modal"
 import { useAuth } from "@/contexts/auth-context"
 import {
@@ -225,7 +226,7 @@ export default function StudentSupport() {
 
   if (isLoading) {
     return (
-      <DashboardLayout role="student">
+      <DashboardLayout navItems={studentNavItems} roleLabel="Student">
         <div className="space-y-6">
           <Skeleton className="h-8 w-48" />
           <Skeleton className="h-10 w-32" />
@@ -307,7 +308,7 @@ export default function StudentSupport() {
 
         {/* New Ticket Modal */}
         <Modal
-          isOpen={isNewTicketOpen}
+          open={isNewTicketOpen}
           onClose={() => setIsNewTicketOpen(false)}
           title="Raise Support Ticket"
         >
@@ -383,7 +384,7 @@ export default function StudentSupport() {
 
         {/* Ticket Detail Modal */}
         <Modal
-          isOpen={isDetailOpen}
+          open={isDetailOpen}
           onClose={() => setIsDetailOpen(false)}
           title={selectedTicket?.subject || "Ticket Details"}
         >

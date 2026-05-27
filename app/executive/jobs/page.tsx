@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { DashboardLayout } from "@/components/shared/dashboard-layout"
+import { executiveNavItems } from "@/lib/nav-items"
 import { Modal } from "@/components/shared/modal"
 import { mockJobs } from "@/lib/mock-data"
 import {
@@ -88,7 +89,7 @@ export default function JobsPlacementPage() {
 
   if (isLoading) {
     return (
-      <DashboardLayout role="executive">
+      <DashboardLayout navItems={executiveNavItems} roleLabel="Executive">
         <div className="space-y-6">
           <Skeleton className="h-8 w-48" />
           <div className="flex gap-4">
@@ -102,7 +103,7 @@ export default function JobsPlacementPage() {
   }
 
   return (
-    <DashboardLayout role="executive">
+    <DashboardLayout navItems={executiveNavItems} roleLabel="Executive">
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">Jobs & Placement</h1>
@@ -257,7 +258,7 @@ export default function JobsPlacementPage() {
 
         {/* Add Job Modal */}
         <Modal
-          isOpen={isAddJobOpen}
+          open={isAddJobOpen}
           onClose={() => setIsAddJobOpen(false)}
           title="Add New Job"
         >

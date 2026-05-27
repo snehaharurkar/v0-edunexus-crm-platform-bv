@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { DashboardLayout } from "@/components/shared/dashboard-layout"
+import { studentNavItems } from "@/lib/nav-items"
 import { useAuth } from "@/contexts/auth-context"
 import { mockStudents, mockCourses } from "@/lib/mock-data"
 import {
@@ -54,7 +55,7 @@ export default function StudentCourses() {
 
   if (isLoading) {
     return (
-      <DashboardLayout role="student">
+      <DashboardLayout navItems={studentNavItems} roleLabel="Student">
         <div className="space-y-6">
           <Skeleton className="h-8 w-48" />
           <Skeleton className="h-40 w-full" />
@@ -70,7 +71,7 @@ export default function StudentCourses() {
   }
 
   return (
-    <DashboardLayout role="student">
+    <DashboardLayout navItems={studentNavItems} roleLabel="Student">
       <div className="space-y-6">
         <h1 className="text-2xl font-bold">My Courses</h1>
 

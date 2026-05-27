@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { DashboardLayout } from "@/components/shared/dashboard-layout"
+import { studentNavItems } from "@/lib/nav-items"
 import {
   User,
   Code,
@@ -148,7 +149,7 @@ export default function ResumeBuilder() {
 
   if (isLoading) {
     return (
-      <DashboardLayout role="student">
+      <DashboardLayout navItems={studentNavItems} roleLabel="Student">
         <div className="space-y-6">
           <Skeleton className="h-8 w-48" />
           <div className="grid gap-6 lg:grid-cols-2">
@@ -161,7 +162,7 @@ export default function ResumeBuilder() {
   }
 
   return (
-    <DashboardLayout role="student">
+    <DashboardLayout navItems={studentNavItems} roleLabel="Student">
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">Resume Builder</h1>

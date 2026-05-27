@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { DashboardLayout } from "@/components/shared/dashboard-layout"
+import { executiveNavItems } from "@/lib/nav-items"
 import { StatCard } from "@/components/shared/stat-card"
 import {
   Users,
@@ -78,7 +79,7 @@ export default function ExecutiveDashboard() {
 
   if (isLoading) {
     return (
-      <DashboardLayout role="executive">
+      <DashboardLayout navItems={executiveNavItems} roleLabel="Executive">
         <div className="space-y-6">
           <Skeleton className="h-8 w-48" />
           <div className="grid gap-4 md:grid-cols-4">
@@ -97,7 +98,7 @@ export default function ExecutiveDashboard() {
   }
 
   return (
-    <DashboardLayout role="executive">
+    <DashboardLayout navItems={executiveNavItems} roleLabel="Executive">
       <div className="space-y-6">
         <h1 className="text-2xl font-bold">Executive Dashboard</h1>
 

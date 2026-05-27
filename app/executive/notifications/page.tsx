@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { DashboardLayout } from "@/components/shared/dashboard-layout"
+import { executiveNavItems } from "@/lib/nav-items"
 import {
   Bell,
   CheckCircle,
@@ -159,7 +160,7 @@ export default function NotificationsPage() {
 
   if (isLoading) {
     return (
-      <DashboardLayout role="executive">
+      <DashboardLayout navItems={executiveNavItems} roleLabel="Executive">
         <div className="space-y-6">
           <Skeleton className="h-8 w-48" />
           <div className="flex gap-2">
@@ -178,7 +179,7 @@ export default function NotificationsPage() {
   }
 
   return (
-    <DashboardLayout role="executive">
+    <DashboardLayout navItems={executiveNavItems} roleLabel="Executive">
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>

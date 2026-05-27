@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { DashboardLayout } from "@/components/shared/dashboard-layout"
+import { studentNavItems } from "@/lib/nav-items"
 import { StatCard } from "@/components/shared/stat-card"
 import { useAuth } from "@/contexts/auth-context"
 import { mockStudents, mockJobs } from "@/lib/mock-data"
@@ -79,7 +80,7 @@ export default function StudentDashboard() {
 
   if (isLoading) {
     return (
-      <DashboardLayout role="student">
+      <DashboardLayout navItems={studentNavItems} roleLabel="Student">
         <div className="space-y-6">
           <Skeleton className="h-32 w-full" />
           <div className="grid gap-4 md:grid-cols-4">
@@ -97,7 +98,7 @@ export default function StudentDashboard() {
   }
 
   return (
-    <DashboardLayout role="student">
+    <DashboardLayout navItems={studentNavItems} roleLabel="Student">
       <div className="space-y-6">
         {/* Welcome Banner */}
         <div className="rounded-xl bg-gradient-to-r from-primary to-primary/80 p-6 text-primary-foreground">
@@ -123,26 +124,22 @@ export default function StudentDashboard() {
           <StatCard
             title="Attendance"
             value={`${student.attendance}%`}
-            icon={CalendarDays}
-            trend={{ value: 2, isPositive: true }}
+            icon={<CalendarDays className="h-6 w-6" />}
           />
           <StatCard
             title="Assignments Done"
             value="12/15"
-            icon={CheckCircle}
-            trend={{ value: 80, isPositive: true }}
+            icon={<CheckCircle className="h-6 w-6" />}
           />
           <StatCard
             title="Points Balance"
             value={student.points.toLocaleString()}
-            icon={Coins}
-            trend={{ value: 150, isPositive: true }}
+            icon={<Coins className="h-6 w-6" />}
           />
           <StatCard
             title="Jobs Matched"
             value="8"
-            icon={Briefcase}
-            trend={{ value: 3, isPositive: true }}
+            icon={<Briefcase className="h-6 w-6" />}
           />
         </div>
 
