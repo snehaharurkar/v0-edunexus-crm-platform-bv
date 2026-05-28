@@ -1,8 +1,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { DashboardLayout } from "@/components/shared/dashboard-layout"
-import { studentNavItems } from "@/lib/nav-items"
 import { useAuth } from "@/contexts/auth-context"
 import { mockStudents } from "@/lib/mock-data"
 import { Coins, Gift, TrendingUp, ShoppingBag, Coffee, Headphones, BookOpen } from "lucide-react"
@@ -41,7 +39,7 @@ export default function StudentRewards() {
 
   if (isLoading) {
     return (
-      <DashboardLayout navItems={studentNavItems} roleLabel="Student">
+      <>
         <div className="space-y-6">
           <Skeleton className="h-8 w-48" />
           <div className="grid gap-6 lg:grid-cols-3">
@@ -53,12 +51,12 @@ export default function StudentRewards() {
             <Skeleton className="h-80" />
           </div>
         </div>
-      </DashboardLayout>
+      </>
     )
   }
 
   return (
-    <DashboardLayout navItems={studentNavItems} roleLabel="Student">
+    <>
       <div className="space-y-6">
         <h1 className="text-2xl font-bold">Rewards Center</h1>
 
@@ -164,6 +162,6 @@ export default function StudentRewards() {
           </div>
         </div>
       </div>
-    </DashboardLayout>
+    </>
   )
 }

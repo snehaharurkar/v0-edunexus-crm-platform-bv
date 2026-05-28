@@ -1,8 +1,6 @@
 "use client"
 
 import React, { useState, useEffect } from 'react'
-import { DashboardLayout } from "@/components/shared/dashboard-layout"
-import { trainerNavItems } from "@/lib/nav-items"
 import { mockClasses, type ClassSession } from '@/lib/mock-data'
 import { Modal } from '@/components/shared/modal'
 import { StatusBadge } from '@/components/shared/badge'
@@ -152,25 +150,22 @@ export default function TrainerClassesPage() {
 
   if (loading) {
     return (
-      <DashboardLayout navItems={trainerNavItems} roleLabel="Trainer">
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <Skeleton className="h-8 w-32" />
-              <Skeleton className="h-4 w-48 mt-2" />
-            </div>
-            <Skeleton className="h-10 w-32" />
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <Skeleton className="h-8 w-32" />
+            <Skeleton className="h-4 w-48 mt-2" />
           </div>
-          <Skeleton className="h-96 w-full" />
+          <Skeleton className="h-10 w-32" />
         </div>
-      </DashboardLayout>
+        <Skeleton className="h-96 w-full" />
+      </div>
     )
   }
 
   return (
-    <DashboardLayout navItems={trainerNavItems} roleLabel="Trainer">
-      <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-foreground">My Classes</h1>
             <p className="text-muted-foreground mt-1">Schedule and manage your classes</p>
@@ -516,6 +511,6 @@ export default function TrainerClassesPage() {
           )}
         </Modal>
       </div>
-    </DashboardLayout>
+    </div>
   )
 }

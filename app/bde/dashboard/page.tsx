@@ -1,10 +1,12 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { mockLeads, type Lead } from '@/lib/mock-data';
+import { useLeadsStore } from '@/store/leads-store';
+import { type Lead } from '@/lib/mock-data';
 import { StatusBadge, getSourceBadgeVariant, getAIScoreBadge } from '@/components/shared/badge';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 import { Phone, Mail, MessageCircle, Calendar } from 'lucide-react';
 
 const pipelineStages = [
@@ -25,7 +27,15 @@ function getDaysSince(dateString: string): number {
   return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 }
 
-function LeadCard({ lead, onClick }: { lead: Lead; onClick: () => void }) {
+function LeadCard({ 
+  lead, 
+  onClick, 
+  onDragStart 
+}: { 
+  lead: Lead; 
+  onClick: () => void; 
+  onDragStart: (e: React.DragEvent, lead: Lead) => void;
+}) {
   const daysSinceContact = getDaysSince(lead.lastContact);
   const aiScoreInfo = getAIScoreBadge(lead.aiScore);
   const needsFollowUp = daysSinceContact >= 3 && lead.status !== 'Converted' && lead.status !== 'Lost';
@@ -34,7 +44,9 @@ function LeadCard({ lead, onClick }: { lead: Lead; onClick: () => void }) {
   return (
     <div
       onClick={onClick}
-      className="bg-card border border-border rounded-lg p-3 cursor-pointer hover:shadow-md transition-all hover:border-primary/30"
+      draggable
+      onDragStart={(e) => onDragStart(e, lead)}
+      className="bg-card border border-border rounded-lg p-3 cursor-grab active:cursor-grabbing hover:shadow-md transition-all hover:border-primary/30"
     >
       {/* Name and Phone */}
       <div className="mb-2">
@@ -75,27 +87,32 @@ function LeadCard({ lead, onClick }: { lead: Lead; onClick: () => void }) {
 
       {/* Action buttons */}
       <div className="flex items-center gap-1 pt-2 border-t border-border">
-        <button
-          onClick={(e) => { e.stopPropagation(); }}
+        <a
+          href={`tel:${lead.phone}`}
+          onClick={(e) => e.stopPropagation()}
           className="flex-1 flex items-center justify-center p-1.5 rounded hover:bg-emerald-100 text-emerald-600 transition-colors"
           title="Call"
         >
           <Phone className="h-4 w-4" />
-        </button>
-        <button
-          onClick={(e) => { e.stopPropagation(); }}
+        </a>
+        <a
+          href={`mailto:${lead.email}`}
+          onClick={(e) => e.stopPropagation()}
           className="flex-1 flex items-center justify-center p-1.5 rounded hover:bg-blue-100 text-blue-600 transition-colors"
           title="Email"
         >
           <Mail className="h-4 w-4" />
-        </button>
-        <button
-          onClick={(e) => { e.stopPropagation(); }}
+        </a>
+        <a
+          href={`https://wa.me/${lead.phone.replace(/\D/g, '')}?text=Hi ${lead.name}, this is regarding your interest in ${lead.courseInterest}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
           className="flex-1 flex items-center justify-center p-1.5 rounded hover:bg-green-100 text-green-600 transition-colors"
           title="WhatsApp"
         >
           <MessageCircle className="h-4 w-4" />
-        </button>
+        </a>
         <button
           onClick={(e) => { e.stopPropagation(); }}
           className="flex-1 flex items-center justify-center p-1.5 rounded hover:bg-purple-100 text-purple-600 transition-colors"
@@ -109,17 +126,11 @@ function LeadCard({ lead, onClick }: { lead: Lead; onClick: () => void }) {
 }
 
 export default function BDEPipeline() {
-  const [loading, setLoading] = useState(true);
-  const [leads, setLeads] = useState<Lead[]>([]);
+  const leads = useLeadsStore((state) => state.leads);
+  const updateLead = useLeadsStore((state) => state.updateLead);
   const router = useRouter();
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setLeads(mockLeads);
-      setLoading(false);
-    }, 1000);
-    return () => clearTimeout(timer);
-  }, []);
+  const [draggedLead, setDraggedLead] = useState<Lead | null>(null);
+  const [dragOverStage, setDragOverStage] = useState<string | null>(null);
 
   const getLeadsByStatus = (status: Lead['status']) => {
     return leads.filter(lead => lead.status === status);
@@ -139,42 +150,64 @@ export default function BDEPipeline() {
     return colors[stage] || 'bg-gray-500';
   };
 
-  if (loading) {
-    return (
-      <div className="space-y-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Lead Pipeline</h1>
-          <p className="text-muted-foreground mt-1">Manage your leads through the sales pipeline</p>
-        </div>
-        <div className="flex gap-4 overflow-x-auto pb-4">
-          {pipelineStages.map((stage) => (
-            <div key={stage} className="flex-shrink-0 w-72">
-              <div className="h-8 w-32 skeleton rounded mb-3" />
-              <div className="space-y-3">
-                {Array.from({ length: 2 }).map((_, i) => (
-                  <div key={i} className="h-40 skeleton rounded-lg" />
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
+  const handleDragStart = (e: React.DragEvent, lead: Lead) => {
+    setDraggedLead(lead);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: React.DragEvent, stage: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverStage(stage);
+  };
+
+  const handleDragLeave = () => {
+    setDragOverStage(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, newStatus: Lead['status']) => {
+    e.preventDefault();
+    setDragOverStage(null);
+    
+    if (draggedLead && draggedLead.status !== newStatus) {
+      updateLead(draggedLead.id, { 
+        status: newStatus,
+        lastContact: new Date().toISOString().split('T')[0],
+      });
+      toast.success(`Lead moved to ${newStatus}`, {
+        description: `${draggedLead.name} has been updated.`,
+      });
+    }
+    setDraggedLead(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedLead(null);
+    setDragOverStage(null);
+  };
 
   return (
     <div className="space-y-4">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Lead Pipeline</h1>
-        <p className="text-muted-foreground mt-1">Manage your leads through the sales pipeline</p>
+        <p className="text-muted-foreground mt-1">Drag and drop leads to update their status</p>
       </div>
 
       {/* Kanban Board */}
       <div className="flex gap-4 overflow-x-auto pb-4">
         {pipelineStages.map((stage) => {
           const stageLeads = getLeadsByStatus(stage);
+          const isDropTarget = dragOverStage === stage;
+          
           return (
-            <div key={stage} className="flex-shrink-0 w-72">
+            <div 
+              key={stage} 
+              className="flex-shrink-0 w-72"
+              onDragOver={(e) => handleDragOver(e, stage)}
+              onDragLeave={handleDragLeave}
+              onDrop={(e) => handleDrop(e, stage)}
+              onDragEnd={handleDragEnd}
+            >
               {/* Column Header */}
               <div className="flex items-center gap-2 mb-3">
                 <div className={cn("w-3 h-3 rounded-full", getStageColor(stage))} />
@@ -185,10 +218,15 @@ export default function BDEPipeline() {
               </div>
 
               {/* Column Content */}
-              <div className="bg-muted/30 rounded-lg p-2 min-h-[calc(100vh-280px)] space-y-3">
+              <div 
+                className={cn(
+                  "bg-muted/30 rounded-lg p-2 min-h-[calc(100vh-280px)] space-y-3 transition-colors",
+                  isDropTarget && "bg-primary/10 ring-2 ring-primary ring-dashed"
+                )}
+              >
                 {stageLeads.length === 0 ? (
                   <div className="flex items-center justify-center h-24 text-sm text-muted-foreground">
-                    No leads
+                    {isDropTarget ? 'Drop here' : 'No leads'}
                   </div>
                 ) : (
                   stageLeads.map((lead) => (
@@ -196,6 +234,7 @@ export default function BDEPipeline() {
                       key={lead.id}
                       lead={lead}
                       onClick={() => router.push(`/bde/lead/${lead.id}`)}
+                      onDragStart={handleDragStart}
                     />
                   ))
                 )}

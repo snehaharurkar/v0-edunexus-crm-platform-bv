@@ -1,8 +1,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { DashboardLayout } from "@/components/shared/dashboard-layout"
-import { studentNavItems } from "@/lib/nav-items"
 import { mockCourses } from "@/lib/mock-data"
 import {
   CreditCard,
@@ -128,17 +126,17 @@ export default function PaymentPage() {
 
   if (isLoading) {
     return (
-      <DashboardLayout navItems={studentNavItems} roleLabel="Student">
+      <>
         <div className="max-w-2xl mx-auto space-y-6">
           <Skeleton className="h-8 w-48" />
           <Skeleton className="h-[400px]" />
         </div>
-      </DashboardLayout>
+      </>
     )
   }
 
   return (
-    <DashboardLayout navItems={studentNavItems} roleLabel="Student">
+    <>
       <div className="max-w-2xl mx-auto space-y-6">
         {/* Progress Steps */}
         <div className="flex items-center justify-between">
@@ -419,6 +417,6 @@ export default function PaymentPage() {
           </div>
         )}
       </div>
-    </DashboardLayout>
+    </>
   )
 }
