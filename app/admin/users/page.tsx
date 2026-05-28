@@ -17,37 +17,70 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Plus, Pencil, Trash2, Loader2, Eye, EyeOff } from 'lucide-react';
+
+interface ExtendedUser extends User {
+  phone?: string;
+}
 
 export default function UsersPage() {
   const [loading, setLoading] = useState(true);
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<ExtendedUser[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [editingUser, setEditingUser] = useState<ExtendedUser | null>(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<ExtendedUser | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
+    confirmPassword: '',
+    phone: '',
     role: 'student' as UserRole,
     isActive: true,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      setUsers(mockUsers);
+      // Add mock phone numbers to users
+      const usersWithPhones: ExtendedUser[] = mockUsers.map((user, index) => ({
+        ...user,
+        phone: `+91 98765 ${String(index + 10000).slice(-5)}`,
+      }));
+      setUsers(usersWithPhones);
       setLoading(false);
     }, 1000);
     return () => clearTimeout(timer);
   }, []);
 
-  const handleOpenModal = (user?: User) => {
+  const handleOpenModal = (user?: ExtendedUser) => {
+    setFormErrors({});
+    setShowPassword(false);
+    setShowConfirmPassword(false);
+    
     if (user) {
       setEditingUser(user);
       setFormData({
         name: user.name,
         email: user.email,
         password: '',
+        confirmPassword: '',
+        phone: user.phone || '',
         role: user.role,
         isActive: user.status === 'active',
       });
@@ -57,6 +90,8 @@ export default function UsersPage() {
         name: '',
         email: '',
         password: '',
+        confirmPassword: '',
+        phone: '',
         role: 'student',
         isActive: true,
       });
@@ -64,8 +99,48 @@ export default function UsersPage() {
     setIsModalOpen(true);
   };
 
+  const validateForm = () => {
+    const errors: Record<string, string> = {};
+    
+    if (!formData.name.trim()) {
+      errors.name = 'Full name is required';
+    }
+    
+    if (!formData.email.trim()) {
+      errors.email = 'Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      errors.email = 'Invalid email format';
+    }
+    
+    if (!editingUser) {
+      if (!formData.password) {
+        errors.password = 'Password is required';
+      } else if (formData.password.length < 6) {
+        errors.password = 'Password must be at least 6 characters';
+      }
+      
+      if (formData.password !== formData.confirmPassword) {
+        errors.confirmPassword = 'Passwords do not match';
+      }
+    } else {
+      // For editing, only validate if password is entered
+      if (formData.password && formData.password.length < 6) {
+        errors.password = 'Password must be at least 6 characters';
+      }
+      if (formData.password && formData.password !== formData.confirmPassword) {
+        errors.confirmPassword = 'Passwords do not match';
+      }
+    }
+    
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateForm()) return;
+    
     setIsSubmitting(true);
 
     await new Promise(resolve => setTimeout(resolve, 1000));
@@ -73,46 +148,77 @@ export default function UsersPage() {
     if (editingUser) {
       setUsers(users.map(u => 
         u.id === editingUser.id 
-          ? { ...u, name: formData.name, email: formData.email, role: formData.role, status: formData.isActive ? 'active' : 'inactive' }
+          ? { 
+              ...u, 
+              name: formData.name, 
+              email: formData.email, 
+              phone: formData.phone,
+              role: formData.role, 
+              status: formData.isActive ? 'active' : 'inactive' 
+            }
           : u
       ));
-      toast.success('User updated successfully');
+      toast.success('User updated successfully', {
+        description: `${formData.name}'s profile has been updated.`,
+      });
     } else {
-      const newUser: User = {
-        id: String(users.length + 1),
+      const newUser: ExtendedUser = {
+        id: String(Date.now()),
         name: formData.name,
         email: formData.email,
+        phone: formData.phone,
         role: formData.role,
         status: formData.isActive ? 'active' : 'inactive',
         createdAt: new Date().toISOString().split('T')[0],
       };
-      setUsers([...users, newUser]);
-      toast.success('User created successfully');
+      setUsers([newUser, ...users]);
+      toast.success(`User ${formData.name} created successfully`, {
+        description: 'The user can now login to the platform.',
+      });
     }
 
     setIsSubmitting(false);
     setIsModalOpen(false);
   };
 
-  const handleDelete = (user: User) => {
-    if (confirm(`Are you sure you want to delete ${user.name}?`)) {
-      setUsers(users.filter(u => u.id !== user.id));
-      toast.success('User deleted successfully');
-    }
+  const handleDeleteClick = (user: ExtendedUser) => {
+    setUserToDelete(user);
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!userToDelete) return;
+    
+    setIsDeleting(true);
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    setUsers(users.filter(u => u.id !== userToDelete.id));
+    toast.success('User deleted', {
+      description: `${userToDelete.name} has been removed from the system.`,
+    });
+    
+    setIsDeleting(false);
+    setDeleteConfirmOpen(false);
+    setUserToDelete(null);
   };
 
   const columns = [
     {
       key: 'name',
       label: 'Name',
-      render: (user: User) => (
+      render: (user: ExtendedUser) => (
         <div className="flex items-center gap-3">
           <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
             <span className="text-sm font-medium text-primary">
               {user.name.charAt(0)}
             </span>
           </div>
-          <span className="font-medium">{user.name}</span>
+          <div>
+            <p className="font-medium">{user.name}</p>
+            {user.phone && (
+              <p className="text-sm text-muted-foreground">{user.phone}</p>
+            )}
+          </div>
         </div>
       ),
     },
@@ -120,7 +226,7 @@ export default function UsersPage() {
     {
       key: 'role',
       label: 'Role',
-      render: (user: User) => (
+      render: (user: ExtendedUser) => (
         <StatusBadge variant={getRoleBadgeVariant(user.role)}>
           {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
         </StatusBadge>
@@ -129,7 +235,7 @@ export default function UsersPage() {
     {
       key: 'status',
       label: 'Status',
-      render: (user: User) => (
+      render: (user: ExtendedUser) => (
         <StatusBadge variant={getStatusBadgeVariant(user.status === 'active' ? 'Active' : 'On Hold')}>
           {user.status === 'active' ? 'Active' : 'Inactive'}
         </StatusBadge>
@@ -139,7 +245,7 @@ export default function UsersPage() {
     {
       key: 'actions',
       label: 'Actions',
-      render: (user: User) => (
+      render: (user: ExtendedUser) => (
         <div className="flex items-center gap-2">
           <Button
             variant="ghost"
@@ -153,7 +259,7 @@ export default function UsersPage() {
             variant="ghost"
             size="icon"
             className="h-8 w-8 text-destructive hover:text-destructive"
-            onClick={() => handleDelete(user)}
+            onClick={() => handleDeleteClick(user)}
           >
             <Trash2 className="h-4 w-4" />
           </Button>
@@ -192,40 +298,93 @@ export default function UsersPage() {
       >
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="name">Full Name</Label>
+            <Label htmlFor="name">Full Name *</Label>
             <Input
               id="name"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               placeholder="Enter full name"
-              required
+              className={formErrors.name ? 'border-destructive' : ''}
             />
+            {formErrors.name && (
+              <p className="text-sm text-destructive">{formErrors.name}</p>
+            )}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">Email *</Label>
             <Input
               id="email"
               type="email"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               placeholder="Enter email address"
-              required
+              className={formErrors.email ? 'border-destructive' : ''}
             />
+            {formErrors.email && (
+              <p className="text-sm text-destructive">{formErrors.email}</p>
+            )}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="password">
-              Password {editingUser && <span className="text-muted-foreground">(leave blank to keep current)</span>}
-            </Label>
+            <Label htmlFor="phone">Phone Number</Label>
             <Input
-              id="password"
-              type="password"
-              value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              placeholder="Enter password"
-              required={!editingUser}
+              id="phone"
+              value={formData.phone}
+              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              placeholder="+91 98765 43210"
             />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="password">
+                Password {editingUser ? '(leave blank to keep current)' : '*'}
+              </Label>
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  placeholder="Enter password"
+                  className={formErrors.password ? 'border-destructive pr-10' : 'pr-10'}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              {formErrors.password && (
+                <p className="text-sm text-destructive">{formErrors.password}</p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <div className="relative">
+                <Input
+                  id="confirmPassword"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  value={formData.confirmPassword}
+                  onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                  placeholder="Confirm password"
+                  className={formErrors.confirmPassword ? 'border-destructive pr-10' : 'pr-10'}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              {formErrors.confirmPassword && (
+                <p className="text-sm text-destructive">{formErrors.confirmPassword}</p>
+              )}
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -241,14 +400,16 @@ export default function UsersPage() {
                 <SelectItem value="admin">Admin</SelectItem>
                 <SelectItem value="bde">BDE</SelectItem>
                 <SelectItem value="trainer">Trainer</SelectItem>
-                <SelectItem value="executive">Executive</SelectItem>
                 <SelectItem value="student">Student</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          <div className="flex items-center justify-between">
-            <Label htmlFor="active">Active Status</Label>
+          <div className="flex items-center justify-between rounded-lg border p-4">
+            <div>
+              <Label htmlFor="active" className="font-medium">Active Status</Label>
+              <p className="text-sm text-muted-foreground">User can login when active</p>
+            </div>
             <Switch
               id="active"
               checked={formData.isActive}
@@ -257,15 +418,52 @@ export default function UsersPage() {
           </div>
 
           <div className="flex justify-end gap-3 pt-4">
-            <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>
+            <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)} disabled={isSubmitting}>
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Saving...' : editingUser ? 'Update User' : 'Create User'}
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  {editingUser ? 'Updating...' : 'Creating...'}
+                </>
+              ) : (
+                editingUser ? 'Save Changes' : 'Create User'
+              )}
             </Button>
           </div>
         </form>
       </Modal>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure you want to delete this user?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete <strong>{userToDelete?.name}</strong> from the system. 
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete User'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

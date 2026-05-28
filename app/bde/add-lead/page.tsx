@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { mockCourses } from '@/lib/mock-data';
+import { useLeadsStore } from '@/store/leads-store';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,20 +26,21 @@ const leadSources = [
   'Website',
   'Google Ads',
   'Referral',
-];
+] as const;
 
-const priorities = ['Hot', 'Warm', 'Cold'];
+const priorities = ['Hot', 'Warm', 'Cold'] as const;
 
 export default function AddLeadPage() {
   const router = useRouter();
+  const addLead = useLeadsStore((state) => state.addLead);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
     phone: '',
     courseInterest: '',
-    source: '',
-    priority: 'Warm',
+    source: '' as typeof leadSources[number] | '',
+    priority: 'Warm' as typeof priorities[number],
     assignedBde: 'Rahul Sharma',
     notes: '',
   });
@@ -48,14 +50,30 @@ export default function AddLeadPage() {
     setIsSubmitting(true);
 
     // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
-    toast.success('Lead created successfully!', {
+    // Add lead to store
+    addLead({
+      name: formData.fullName,
+      email: formData.email,
+      phone: formData.phone,
+      courseInterest: formData.courseInterest,
+      source: formData.source as typeof leadSources[number],
+      priority: formData.priority,
+      assignedBde: formData.assignedBde,
+      notes: formData.notes,
+    });
+
+    toast.success('Lead added successfully!', {
       description: `${formData.fullName} has been added to the pipeline.`,
     });
 
     setIsSubmitting(false);
-    router.push('/bde/dashboard');
+    
+    // Redirect to pipeline after 1 second
+    setTimeout(() => {
+      router.push('/bde/dashboard');
+    }, 1000);
   };
 
   return (
@@ -128,7 +146,7 @@ export default function AddLeadPage() {
               <Label htmlFor="source">Lead Source *</Label>
               <Select
                 value={formData.source}
-                onValueChange={(value) => setFormData({ ...formData, source: value })}
+                onValueChange={(value) => setFormData({ ...formData, source: value as typeof leadSources[number] })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select source" />
@@ -150,7 +168,7 @@ export default function AddLeadPage() {
               <Label htmlFor="priority">Priority</Label>
               <Select
                 value={formData.priority}
-                onValueChange={(value) => setFormData({ ...formData, priority: value })}
+                onValueChange={(value) => setFormData({ ...formData, priority: value as typeof priorities[number] })}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -210,6 +228,7 @@ export default function AddLeadPage() {
               type="button"
               variant="outline"
               onClick={() => router.back()}
+              disabled={isSubmitting}
             >
               Cancel
             </Button>

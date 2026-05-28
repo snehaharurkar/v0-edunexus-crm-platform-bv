@@ -1,8 +1,6 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { DashboardLayout } from "@/components/shared/dashboard-layout"
-import { studentNavItems } from "@/lib/nav-items"
 import { Bot, Send, User, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -98,18 +96,18 @@ export default function AIMentorChat() {
 
   if (isLoading) {
     return (
-      <DashboardLayout navItems={studentNavItems} roleLabel="Student">
+      <>
         <div className="flex h-[calc(100vh-8rem)] flex-col">
           <Skeleton className="mb-4 h-8 w-48" />
           <Skeleton className="flex-1" />
           <Skeleton className="mt-4 h-14" />
         </div>
-      </DashboardLayout>
+      </>
     )
   }
 
   return (
-    <DashboardLayout navItems={studentNavItems} roleLabel="Student">
+    <>
       <div className="flex h-[calc(100vh-8rem)] flex-col">
         <div className="mb-4 flex items-center gap-3">
           <div className="rounded-lg bg-primary/10 p-2">
@@ -218,6 +216,6 @@ export default function AIMentorChat() {
           </Button>
         </div>
       </div>
-    </DashboardLayout>
+    </>
   )
 }

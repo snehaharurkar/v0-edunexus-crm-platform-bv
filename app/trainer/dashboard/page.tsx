@@ -1,8 +1,6 @@
 "use client"
 
 import React, { useState, useEffect } from 'react'
-import { DashboardLayout } from "@/components/shared/dashboard-layout"
-import { trainerNavItems } from "@/lib/nav-items"
 import { mockClasses, type ClassSession } from '@/lib/mock-data'
 import { Modal } from '@/components/shared/modal'
 import { StatusBadge } from '@/components/shared/badge'
@@ -152,58 +150,55 @@ export default function TrainerClassesPage() {
 
   if (loading) {
     return (
-      <DashboardLayout navItems={trainerNavItems} roleLabel="Trainer">
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <Skeleton className="h-8 w-32" />
-              <Skeleton className="h-4 w-48 mt-2" />
-            </div>
-            <Skeleton className="h-10 w-32" />
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <Skeleton className="h-8 w-32" />
+            <Skeleton className="h-4 w-48 mt-2" />
           </div>
-          <Skeleton className="h-96 w-full" />
+          <Skeleton className="h-10 w-32" />
         </div>
-      </DashboardLayout>
+        <Skeleton className="h-96 w-full" />
+      </div>
     )
   }
 
   return (
-    <DashboardLayout navItems={trainerNavItems} roleLabel="Trainer">
-      <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">My Classes</h1>
-            <p className="text-muted-foreground mt-1">Schedule and manage your classes</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="flex rounded-lg border border-border overflow-hidden">
-              <button
-                onClick={() => setViewMode('calendar')}
-                className={cn(
-                  "px-3 py-2 text-sm font-medium transition-colors",
-                  viewMode === 'calendar' ? "bg-primary text-primary-foreground" : "bg-card hover:bg-muted"
-                )}
-              >
-                <CalendarIcon className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => setViewMode('list')}
-                className={cn(
-                  "px-3 py-2 text-sm font-medium transition-colors",
-                  viewMode === 'list' ? "bg-primary text-primary-foreground" : "bg-card hover:bg-muted"
-                )}
-              >
-                <List className="h-4 w-4" />
-              </button>
-            </div>
-            <Button onClick={() => setIsModalOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Create Class
-            </Button>
-          </div>
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">My Classes</h1>
+          <p className="text-muted-foreground mt-1">Schedule and manage your classes</p>
         </div>
+        <div className="flex items-center gap-2">
+          <div className="flex rounded-lg border border-border overflow-hidden">
+            <button
+              onClick={() => setViewMode('calendar')}
+              className={cn(
+                "px-3 py-2 text-sm font-medium transition-colors",
+                viewMode === 'calendar' ? "bg-primary text-primary-foreground" : "bg-card hover:bg-muted"
+              )}
+            >
+              <CalendarIcon className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={cn(
+                "px-3 py-2 text-sm font-medium transition-colors",
+                viewMode === 'list' ? "bg-primary text-primary-foreground" : "bg-card hover:bg-muted"
+              )}
+            >
+              <List className="h-4 w-4" />
+            </button>
+          </div>
+          <Button onClick={() => setIsModalOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Create Class
+          </Button>
+        </div>
+      </div>
 
-        {viewMode === 'calendar' ? (
+      {viewMode === 'calendar' ? (
           /* Calendar View */
           <div className="rounded-xl border border-border bg-card p-6">
             <h2 className="text-lg font-semibold text-card-foreground mb-4">
@@ -515,7 +510,6 @@ export default function TrainerClassesPage() {
             </div>
           )}
         </Modal>
-      </div>
-    </DashboardLayout>
+    </div>
   )
 }

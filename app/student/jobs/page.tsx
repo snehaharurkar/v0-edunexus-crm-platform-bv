@@ -1,8 +1,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { DashboardLayout } from "@/components/shared/dashboard-layout"
-import { studentNavItems } from "@/lib/nav-items"
 import { mockJobs } from "@/lib/mock-data"
 import {
   Briefcase,
@@ -52,7 +50,7 @@ export default function StudentJobs() {
 
   if (isLoading) {
     return (
-      <DashboardLayout navItems={studentNavItems} roleLabel="Student">
+      <>
         <div className="space-y-6">
           <Skeleton className="h-8 w-48" />
           <div className="flex gap-4">
@@ -67,12 +65,12 @@ export default function StudentJobs() {
             ))}
           </div>
         </div>
-      </DashboardLayout>
+      </>
     )
   }
 
   return (
-    <DashboardLayout navItems={studentNavItems} roleLabel="Student">
+    <>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">Job Opportunities</h1>
@@ -218,6 +216,6 @@ export default function StudentJobs() {
           </div>
         )}
       </div>
-    </DashboardLayout>
+    </>
   )
 }

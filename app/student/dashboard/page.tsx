@@ -1,8 +1,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { DashboardLayout } from "@/components/shared/dashboard-layout"
-import { studentNavItems } from "@/lib/nav-items"
 import { StatCard } from "@/components/shared/stat-card"
 import { useAuth } from "@/contexts/auth-context"
 import { mockStudents, mockJobs } from "@/lib/mock-data"
@@ -80,7 +78,7 @@ export default function StudentDashboard() {
 
   if (isLoading) {
     return (
-      <DashboardLayout navItems={studentNavItems} roleLabel="Student">
+      <>
         <div className="space-y-6">
           <Skeleton className="h-32 w-full" />
           <div className="grid gap-4 md:grid-cols-4">
@@ -93,12 +91,12 @@ export default function StudentDashboard() {
             <Skeleton className="h-48" />
           </div>
         </div>
-      </DashboardLayout>
+      </>
     )
   }
 
   return (
-    <DashboardLayout navItems={studentNavItems} roleLabel="Student">
+    <>
       <div className="space-y-6">
         {/* Welcome Banner */}
         <div className="rounded-xl bg-gradient-to-r from-primary to-primary/80 p-6 text-primary-foreground">
@@ -207,6 +205,6 @@ export default function StudentDashboard() {
           </div>
         </div>
       </div>
-    </DashboardLayout>
+    </>
   )
 }

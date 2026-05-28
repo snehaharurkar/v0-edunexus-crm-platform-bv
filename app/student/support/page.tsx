@@ -1,8 +1,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { DashboardLayout } from "@/components/shared/dashboard-layout"
-import { studentNavItems } from "@/lib/nav-items"
 import { Modal } from "@/components/shared/modal"
 import { mockCourses, mockTrainers } from "@/lib/mock-data"
 import {
@@ -210,7 +208,7 @@ export default function StudentSupport() {
 
   if (isLoading) {
     return (
-      <DashboardLayout navItems={studentNavItems} roleLabel="Student">
+      <>
         <div className="space-y-6">
           <Skeleton className="h-8 w-48" />
           <Skeleton className="h-10 w-64" />
@@ -219,12 +217,12 @@ export default function StudentSupport() {
             <Skeleton className="h-[400px]" />
           </div>
         </div>
-      </DashboardLayout>
+      </>
     )
   }
 
   return (
-    <DashboardLayout navItems={studentNavItems} roleLabel="Student">
+    <>
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold">Support Center</h1>
@@ -501,6 +499,6 @@ export default function StudentSupport() {
           )}
         </Modal>
       </div>
-    </DashboardLayout>
+    </>
   )
 }

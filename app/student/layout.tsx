@@ -3,6 +3,8 @@
 import { useAuth } from "@/contexts/auth-context"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
+import { DashboardLayout } from "@/components/shared/dashboard-layout"
+import { studentNavItems } from "@/lib/nav-items"
 
 export default function StudentLayout({
   children,
@@ -26,5 +28,9 @@ export default function StudentLayout({
     )
   }
 
-  return <>{children}</>
+  return (
+    <DashboardLayout navItems={studentNavItems} roleLabel="Student">
+      {children}
+    </DashboardLayout>
+  )
 }
