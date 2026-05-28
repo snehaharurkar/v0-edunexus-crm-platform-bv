@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useAuth } from '@/contexts/auth-context';
 import type { UserRole } from '@/lib/mock-data';
 import { toast } from 'sonner';
@@ -197,6 +198,14 @@ export default function LoginPage() {
               <code className="bg-muted px-1 py-0.5 rounded text-xs font-mono">password</code>
             </p>
           </div>
+
+          {/* Sign up link */}
+          <p className="text-center text-sm text-muted-foreground mt-6">
+            Don&apos;t have an account?{' '}
+            <Link href="/signup" className="text-primary font-medium hover:underline">
+              Sign Up
+            </Link>
+          </p>
         </div>
 
         {/* Footer */}
