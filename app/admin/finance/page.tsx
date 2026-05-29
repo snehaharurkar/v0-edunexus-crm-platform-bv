@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
@@ -27,6 +26,16 @@ const statusColors: Record<string, string> = {
   Refunded: 'bg-gray-100 text-gray-600',
 };
 
+// Mock transaction data
+const mockTransactions: Transaction[] = [
+  { id: '1', date: '2026-05-28', student_name: 'John Doe', amount: 5000, gateway: 'UPI', status: 'Completed' },
+  { id: '2', date: '2026-05-27', student_name: 'Jane Smith', amount: 7500, gateway: 'PhonePe', status: 'Completed' },
+  { id: '3', date: '2026-05-26', student_name: 'Rajesh Kumar', amount: 3000, gateway: 'Paytm', status: 'Pending' },
+  { id: '4', date: '2026-05-25', student_name: 'Priya Singh', amount: 10000, gateway: 'UPI', status: 'Completed' },
+  { id: '5', date: '2026-05-24', student_name: 'Amit Patel', amount: 5000, gateway: 'PayPal', status: 'Failed' },
+  { id: '6', date: '2026-05-23', student_name: 'Sneha Roy', amount: 6000, gateway: 'Bitcoin', status: 'Refunded' },
+];
+
 export default function FinancePage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,9 +46,12 @@ export default function FinancePage() {
 
   const fetchTransactions = async () => {
     setLoading(true);
-    const { data, error } = await supabase.from('transactions').select('*').order('date', { ascending: false });
-    if (error) toast.error('Failed to load transactions');
-    else setTransactions(data || []);
+    try {
+      // Use mock data for now until Supabase is configured
+      setTransactions(mockTransactions);
+    } catch (error) {
+      toast.error('Failed to load transactions');
+    }
     setLoading(false);
   };
 
