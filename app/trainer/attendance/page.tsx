@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import { Skeleton } from '@/components/ui/skeleton';
 import { mockStudents, mockClasses } from '@/lib/mock-data';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -86,9 +87,9 @@ export default function AttendancePage() {
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="h-8 w-48 skeleton rounded" />
-        <div className="h-12 w-64 skeleton rounded" />
-        <div className="h-96 skeleton rounded-xl" />
+        <Skeleton className="h-8 w-48 rounded" />
+        <Skeleton className="h-12 w-64 rounded" />
+        <Skeleton className="h-96 rounded-xl" />
       </div>
     );
   }

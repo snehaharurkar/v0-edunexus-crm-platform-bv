@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { StatCard } from '@/components/shared/stat-card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { mockLeads, mockStudents, mockTransactions, mockTrainers } from '@/lib/mock-data';
 import {
   Users,
@@ -115,7 +116,7 @@ export default function AdminDashboard() {
           {loading ? (
             <div className="space-y-3">
               {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="h-12 skeleton rounded" />
+                <Skeleton key={i} className="h-12 rounded" />
               ))}
             </div>
           ) : (
@@ -152,7 +153,7 @@ export default function AdminDashboard() {
           {loading ? (
             <div className="space-y-3">
               {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="h-12 skeleton rounded" />
+                <Skeleton key={i} className="h-12 rounded" />
               ))}
             </div>
           ) : (

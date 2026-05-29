@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { StatCard } from '@/components/shared/stat-card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useLeads, CURRENT_BDE } from '@/contexts/leads-context';
 import {
   BarChart,
@@ -125,7 +126,7 @@ export default function BDEReportsPage() {
         <div className="rounded-xl border border-border bg-card p-6">
           <h3 className="text-lg font-semibold text-card-foreground mb-4">My Leads by Status</h3>
           {loading ? (
-            <div className="h-64 skeleton rounded" />
+            <Skeleton className="h-64 rounded" />
           ) : (
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={leadsByStatus}>
@@ -149,7 +150,7 @@ export default function BDEReportsPage() {
         <div className="rounded-xl border border-border bg-card p-6">
           <h3 className="text-lg font-semibold text-card-foreground mb-4">Weekly Activity</h3>
           {loading ? (
-            <div className="h-64 skeleton rounded" />
+            <Skeleton className="h-64 rounded" />
           ) : (
             <ResponsiveContainer width="100%" height={280}>
               <LineChart data={weeklyActivity}>

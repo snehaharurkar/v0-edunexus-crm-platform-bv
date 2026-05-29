@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { cn } from '@/lib/utils';
+import { Skeleton } from '@/components/ui/skeleton';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 
 interface StatCardProps {
@@ -28,11 +29,11 @@ export function StatCard({
       <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
         <div className="flex items-start justify-between">
           <div className="space-y-3 flex-1">
-            <div className="h-4 w-24 skeleton rounded" />
-            <div className="h-8 w-32 skeleton rounded" />
-            <div className="h-3 w-20 skeleton rounded" />
+            <Skeleton className="h-4 w-24 rounded" />
+            <Skeleton className="h-8 w-32 rounded" />
+            <Skeleton className="h-3 w-20 rounded" />
           </div>
-          <div className="h-12 w-12 skeleton rounded-lg" />
+          <Skeleton className="h-12 w-12 rounded-lg" />
         </div>
       </div>
     );

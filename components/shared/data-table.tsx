@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { cn } from '@/lib/utils';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
@@ -120,16 +121,16 @@ export function DataTable<T extends { id: string }>({
       <div className="rounded-lg border border-border bg-card">
         <div className="p-4 border-b border-border">
           <div className="flex flex-col sm:flex-row gap-4 justify-between">
-            <div className="h-10 w-64 skeleton rounded" />
+            <Skeleton className="h-10 w-64 rounded" />
             <div className="flex gap-2">
-              <div className="h-10 w-24 skeleton rounded" />
-              <div className="h-10 w-24 skeleton rounded" />
+              <Skeleton className="h-10 w-24 rounded" />
+              <Skeleton className="h-10 w-24 rounded" />
             </div>
           </div>
         </div>
         <div className="p-4 space-y-4">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="h-12 skeleton rounded" />
+            <Skeleton key={i} className="h-12 rounded" />
           ))}
         </div>
       </div>

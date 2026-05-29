@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -116,13 +117,13 @@ export default function TrainerContentPage() {
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="h-8 w-48 skeleton rounded" />
+        <Skeleton className="h-8 w-48 rounded" />
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="h-48 skeleton rounded-xl" />
-          <div className="h-48 skeleton rounded-xl" />
-          <div className="h-48 skeleton rounded-xl" />
+          <Skeleton className="h-48 rounded-xl" />
+          <Skeleton className="h-48 rounded-xl" />
+          <Skeleton className="h-48 rounded-xl" />
         </div>
-        <div className="h-64 skeleton rounded-xl" />
+        <Skeleton className="h-64 rounded-xl" />
       </div>
     );
   }

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import { Skeleton } from '@/components/ui/skeleton';
 import { analyticsData } from '@/lib/mock-data';
 import {
   BarChart,
@@ -37,7 +38,7 @@ export default function AnalyticsPage() {
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="h-80 skeleton rounded-xl" />
+            <Skeleton key={i} className="h-80 rounded-xl" />
           ))}
         </div>
       </div>
