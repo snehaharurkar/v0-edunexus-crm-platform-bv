@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
@@ -19,6 +18,45 @@ interface Course {
   video_url: string;
   thumbnail_url: string;
 }
+
+const mockCourses: Course[] = [
+  {
+    id: '1',
+    title: 'Web Development Fundamentals',
+    description: 'Learn HTML, CSS, and JavaScript basics for web development',
+    trainer: 'John Doe',
+    price: 5000,
+    duration: '3 months',
+    batches: 2,
+    status: 'Active',
+    video_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+    thumbnail_url: ''
+  },
+  {
+    id: '2',
+    title: 'Advanced React',
+    description: 'Master React hooks, context API, and state management',
+    trainer: 'Jane Smith',
+    price: 7500,
+    duration: '2 months',
+    batches: 1,
+    status: 'Upcoming',
+    video_url: '',
+    thumbnail_url: ''
+  },
+  {
+    id: '3',
+    title: 'Full Stack Development',
+    description: 'Build complete applications with Node.js and MongoDB',
+    trainer: 'Mike Johnson',
+    price: 10000,
+    duration: '4 months',
+    batches: 3,
+    status: 'Active',
+    video_url: '',
+    thumbnail_url: ''
+  }
+];
 
 const getYoutubeThumbnail = (url: string) => {
   if (!url) return null;
@@ -45,9 +83,12 @@ export default function CoursesPage() {
 
   const fetchCourses = async () => {
     setLoading(true);
-    const { data, error } = await supabase.from('courses').select('*').order('created_at', { ascending: false });
-    if (error) toast.error('Failed to load courses');
-    else setCourses(data || []);
+    try {
+      // Use mock data for now - Supabase will be integrated when configured
+      setCourses(mockCourses);
+    } catch (error) {
+      toast.error('Failed to load courses');
+    }
     setLoading(false);
   };
 
@@ -57,18 +98,25 @@ export default function CoursesPage() {
     if (!form.title || !form.trainer) return toast.error('Title and trainer are required');
     const payload = { ...form, price: Number(form.price), batches: Number(form.batches) };
     if (editCourse) {
-      const { error } = await supabase.from('courses').update(payload).eq('id', editCourse.id);
-      if (error) toast.error('Failed to update'); else { toast.success('Course updated!'); setEditCourse(null); setShowModal(false); fetchCourses(); }
+      // Update in mock data
+      setCourses(courses.map(c => c.id === editCourse.id ? { ...c, ...payload, id: c.id } : c));
+      toast.success('Course updated!');
+      setEditCourse(null);
+      setShowModal(false);
     } else {
-      const { error } = await supabase.from('courses').insert([payload]);
-      if (error) toast.error('Failed to add'); else { toast.success('Course added!'); setShowModal(false); fetchCourses(); }
+      // Add to mock data
+      const newCourse: Course = { ...payload, id: String(Date.now()), batches: Number(form.batches), price: Number(form.price) };
+      setCourses([newCourse, ...courses]);
+      toast.success('Course added!');
+      setShowModal(false);
     }
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm('Delete this course?')) return;
-    const { error } = await supabase.from('courses').delete().eq('id', id);
-    if (error) toast.error('Failed to delete'); else { toast.success('Deleted!'); fetchCourses(); }
+    // Delete from mock data
+    setCourses(courses.filter(c => c.id !== id));
+    toast.success('Deleted!');
   };
 
   const openAdd = () => {
