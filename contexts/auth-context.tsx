@@ -1,11 +1,52 @@
 "use client";
 
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from 'react';
 import { mockUsers, type User, type UserRole } from '@/lib/mock-data';
+
+const AUTH_KEYS = {
+  user: 'user',
+  userRole: 'userRole',
+  isLoggedIn: 'isLoggedIn',
+} as const;
+
+export function clearAuthStorage(): void {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem(AUTH_KEYS.user);
+  localStorage.removeItem(AUTH_KEYS.userRole);
+  localStorage.removeItem(AUTH_KEYS.isLoggedIn);
+  sessionStorage.clear();
+}
+
+function persistAuth(user: User): void {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(AUTH_KEYS.user, JSON.stringify(user));
+  localStorage.setItem(AUTH_KEYS.userRole, user.role);
+  localStorage.setItem(AUTH_KEYS.isLoggedIn, 'true');
+}
+
+function restoreAuthUser(): User | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const isLoggedIn = localStorage.getItem(AUTH_KEYS.isLoggedIn);
+    const storedUser = localStorage.getItem(AUTH_KEYS.user);
+    if (isLoggedIn !== 'true' || !storedUser) return null;
+    return JSON.parse(storedUser) as User;
+  } catch {
+    clearAuthStorage();
+    return null;
+  }
+}
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
+  isLoading: boolean;
   login: (email: string, password: string, role: UserRole) => Promise<boolean>;
   logout: () => void;
 }
@@ -15,43 +56,67 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const login = useCallback(async (email: string, password: string, role: UserRole): Promise<boolean> => {
-    setLoading(true);
-    
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Mock authentication - check if credentials match
-    const validCredentials: Record<string, { email: string; password: string; role: UserRole }> = {
-      admin: { email: 'admin@test.com', password: 'password', role: 'admin' },
-      bde: { email: 'bde@test.com', password: 'password', role: 'bde' },
-      trainer: { email: 'trainer@test.com', password: 'password', role: 'trainer' },
-      executive: { email: 'executive@test.com', password: 'password', role: 'executive' },
-      student: { email: 'student@test.com', password: 'password', role: 'student' },
-    };
-
-    const creds = validCredentials[role];
-    
-    if (creds && email === creds.email && password === creds.password) {
-      const foundUser = mockUsers.find(u => u.email === email && u.role === role);
-      if (foundUser) {
-        setUser(foundUser);
-        setLoading(false);
-        return true;
-      }
+  useEffect(() => {
+    const restored = restoreAuthUser();
+    if (restored) {
+      setUser(restored);
     }
-    
-    setLoading(false);
-    return false;
+    setIsLoading(false);
   }, []);
 
+  const login = useCallback(
+    async (email: string, password: string, role: UserRole): Promise<boolean> => {
+      setLoading(true);
+
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      const validCredentials: Record<
+        string,
+        { email: string; password: string; role: UserRole }
+      > = {
+        admin: { email: 'admin@test.com', password: 'password', role: 'admin' },
+        bde: { email: 'bde@test.com', password: 'password', role: 'bde' },
+        trainer: {
+          email: 'trainer@test.com',
+          password: 'password',
+          role: 'trainer',
+        },
+        student: {
+          email: 'student@test.com',
+          password: 'password',
+          role: 'student',
+        },
+      };
+
+      const creds = validCredentials[role];
+
+      if (creds && email === creds.email && password === creds.password) {
+        const foundUser = mockUsers.find(
+          (u) => u.email === email && u.role === role
+        );
+        if (foundUser) {
+          setUser(foundUser);
+          persistAuth(foundUser);
+          setLoading(false);
+          return true;
+        }
+      }
+
+      setLoading(false);
+      return false;
+    },
+    []
+  );
+
   const logout = useCallback(() => {
+    clearAuthStorage();
     setUser(null);
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, isLoading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

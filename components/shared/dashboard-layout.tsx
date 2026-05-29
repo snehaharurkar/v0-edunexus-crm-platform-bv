@@ -4,7 +4,6 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { useAuth } from '@/contexts/auth-context';
 import { mockNotifications } from '@/lib/mock-data';
 import {
   Menu,
@@ -18,6 +17,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { toast } from 'sonner';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,6 +31,7 @@ interface NavItem {
   label: string;
   href: string;
   icon: React.ReactNode;
+  badge?: number;
 }
 
 interface DashboardLayoutProps {
@@ -44,13 +45,40 @@ export function DashboardLayout({ children, navItems, roleLabel }: DashboardLayo
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
-  const { user, logout } = useAuth();
 
   const unreadCount = mockNotifications.filter(n => !n.read).length;
 
   const handleLogout = () => {
-    logout();
-    router.push('/login');
+    try {
+      localStorage.clear();
+      sessionStorage.clear();
+    } catch (e) {}
+    toast.success('Logged out successfully');
+    setTimeout(() => {
+      window.location.href = '/login';
+    }, 500);
+  };
+
+  const getUserName = () => {
+    try {
+      const stored = localStorage.getItem('user');
+      if (stored) {
+        const user = JSON.parse(stored);
+        return user.name || 'User';
+      }
+    } catch (e) {}
+    return 'User';
+  };
+
+  const getUserEmail = () => {
+    try {
+      const stored = localStorage.getItem('user');
+      if (stored) {
+        const user = JSON.parse(stored);
+        return user.email || 'user@example.com';
+      }
+    } catch (e) {}
+    return 'user@example.com';
   };
 
   const getNotificationIcon = (type: string) => {
@@ -66,7 +94,6 @@ export function DashboardLayout({ children, navItems, roleLabel }: DashboardLayo
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
-      {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/50 lg:hidden"
@@ -118,7 +145,12 @@ export function DashboardLayout({ children, navItems, roleLabel }: DashboardLayo
                       onClick={() => setSidebarOpen(false)}
                     >
                       {item.icon}
-                      {item.label}
+                      <span className="flex-1">{item.label}</span>
+                      {item.badge != null && item.badge > 0 && (
+                        <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">
+                          {item.badge > 99 ? '99+' : item.badge}
+                        </span>
+                      )}
                     </Link>
                   </li>
                 );
@@ -126,26 +158,33 @@ export function DashboardLayout({ children, navItems, roleLabel }: DashboardLayo
             </ul>
           </nav>
 
-          {/* User info at bottom */}
+          {/* Logout button in sidebar */}
           <div className="border-t border-sidebar-border p-4">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 mb-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-sidebar-accent text-sidebar-accent-foreground">
                 <User className="h-5 w-5" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-sidebar-foreground truncate">
-                  {user?.name || 'User'}
+                  {getUserName()}
                 </p>
                 <p className="text-xs text-sidebar-foreground/60 truncate">
-                  {user?.email || 'user@example.com'}
+                  {getUserEmail()}
                 </p>
               </div>
             </div>
+            <button
+              onClick={handleLogout}
+              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors"
+            >
+              <LogOut className="h-4 w-4" />
+              Logout
+            </button>
           </div>
         </div>
       </aside>
 
-      {/* Main content area */}
+      {/* Main content */}
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Top navbar */}
         <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-card px-4 shadow-sm">
@@ -158,8 +197,6 @@ export function DashboardLayout({ children, navItems, roleLabel }: DashboardLayo
             >
               <Menu className="h-5 w-5" />
             </Button>
-            
-            {/* Search */}
             <div className="hidden sm:block relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -223,7 +260,7 @@ export function DashboardLayout({ children, navItems, roleLabel }: DashboardLayo
                     <User className="h-4 w-4" />
                   </div>
                   <div className="hidden md:block text-left">
-                    <p className="text-sm font-medium">{user?.name || 'User'}</p>
+                    <p className="text-sm font-medium">{getUserName()}</p>
                     <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
                       {roleLabel}
                     </span>
@@ -243,7 +280,13 @@ export function DashboardLayout({ children, navItems, roleLabel }: DashboardLayo
                   Settings
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout} className="text-destructive">
+                <DropdownMenuItem
+                  className="text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer"
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    handleLogout();
+                  }}
+                >
                   <LogOut className="mr-2 h-4 w-4" />
                   Logout
                 </DropdownMenuItem>

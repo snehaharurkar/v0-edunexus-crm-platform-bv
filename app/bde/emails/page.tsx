@@ -4,7 +4,9 @@ import { useState, useEffect } from "react"
 import { DashboardLayout } from "@/components/shared/dashboard-layout"
 import { bdeNavItems } from "@/lib/nav-items"
 import { Modal } from "@/components/shared/modal"
-import { mockLeads, mockStudents } from "@/lib/mock-data"
+import { mockStudents } from "@/lib/mock-data"
+import { useLeads, CURRENT_BDE } from "@/contexts/leads-context"
+import { getEmailjsErrorMessage, sendLeadEmail, personalizeEmailContent } from "@/lib/emailjs-send"
 import {
   Mail,
   Send,
@@ -159,7 +161,15 @@ function Skeleton({ className }: { className?: string }) {
   return <div className={`animate-pulse rounded bg-muted ${className}`} />
 }
 
+type BulkRecipient = {
+  email: string
+  name: string
+  course?: string
+  courseInterest?: string
+}
+
 export default function BDEEmailsPage() {
+  const { leads, addActivity } = useLeads()
   const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<"single" | "bulk">("single")
   
@@ -210,72 +220,166 @@ export default function BDEEmailsPage() {
     }
   }, [emailType])
 
-  const getRecipientCount = () => {
+  const resolveBulkRecipients = (): BulkRecipient[] => {
     switch (recipientType) {
-      case "all_students": return mockStudents.length
-      case "all_leads": return mockLeads.length
-      case "specific_course": return 25
-      case "specific_batch": return 15
-      case "custom": return selectedRecipients.length
-      default: return 0
+      case "all_students":
+        return mockStudents.map((s) => ({
+          email: s.email,
+          name: s.name,
+          course: s.course,
+        }))
+      case "all_leads":
+        return leads.map((l) => ({
+          email: l.email,
+          name: l.name,
+          courseInterest: l.courseInterest,
+        }))
+      case "specific_course":
+        return leads.slice(0, 25).map((l) => ({
+          email: l.email,
+          name: l.name,
+          courseInterest: l.courseInterest,
+        }))
+      case "specific_batch":
+        return leads.slice(0, 15).map((l) => ({
+          email: l.email,
+          name: l.name,
+          courseInterest: l.courseInterest,
+        }))
+      case "custom":
+        return leads
+          .filter((l) => selectedRecipients.includes(l.id))
+          .map((l) => ({
+            email: l.email,
+            name: l.name,
+            courseInterest: l.courseInterest,
+          }))
+      default:
+        return []
     }
   }
+
+  const getRecipientCount = () => resolveBulkRecipients().length
 
   const handleSendEmail = async () => {
     if (!selectedLead || !subject || !body) {
       toast.error("Please fill all required fields")
       return
     }
-    
+
+    const lead = leads.find((l) => l.id === selectedLead)
+    if (!lead) {
+      toast.error("Lead not found")
+      return
+    }
+
     setIsSending(true)
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    
-    const lead = mockLeads.find(l => l.id === selectedLead)
-    setSentEmails(prev => [{
-      id: prev.length + 1,
-      to: lead?.email || "",
-      subject,
-      type: emailTypes.find(t => t.value === emailType)?.label || "Custom",
-      sentAt: new Date().toLocaleString(),
-      status: "Delivered"
-    }, ...prev])
-    
+    try {
+      const emailSubject = personalizeEmailContent(subject, lead)
+      const emailBody = personalizeEmailContent(body, lead)
+
+      await sendLeadEmail({
+        to_email: lead.email,
+        to_name: lead.name,
+        subject: emailSubject,
+        message: emailBody,
+      })
+
+      addActivity(lead.id, {
+        type: "email",
+        text: "Email sent: " + emailSubject,
+        by: CURRENT_BDE,
+      })
+
+      setSentEmails((prev) => [
+        {
+          id: prev.length + 1,
+          to: lead.email,
+          subject: emailSubject,
+          type: emailTypes.find((t) => t.value === emailType)?.label || "Custom",
+          sentAt: new Date().toLocaleString(),
+          status: "Delivered",
+        },
+        ...prev,
+      ])
+
+      setSelectedLead("")
+      setEmailType("")
+      setSubject("")
+      setBody("")
+      toast.success("Email sent to " + lead.name + "!")
+    } catch (error) {
+      toast.error(getEmailjsErrorMessage(error))
+      console.error("EmailJS error:", error)
+    }
     setIsSending(false)
-    setSelectedLead("")
-    setEmailType("")
-    setSubject("")
-    setBody("")
-    toast.success("Email sent successfully!")
   }
 
   const handleBulkSend = async () => {
+    if (!bulkSubject || !bulkBody) {
+      toast.error("Please fill subject and body")
+      return
+    }
+
+    const recipients = resolveBulkRecipients()
+    if (recipients.length === 0) {
+      toast.error("No recipients selected")
+      return
+    }
+
     setIsConfirmOpen(false)
     setIsBulkSending(true)
     setBulkProgress(0)
-    
-    const total = getRecipientCount()
-    for (let i = 0; i <= 100; i += 5) {
-      await new Promise(resolve => setTimeout(resolve, 100))
-      setBulkProgress(i)
+
+    let sent = 0
+    let failed = 0
+
+    for (let i = 0; i < recipients.length; i++) {
+      const recipient = recipients[i]
+      try {
+        const emailSubject = personalizeEmailContent(bulkSubject, recipient)
+        const emailBody = personalizeEmailContent(bulkBody, recipient)
+
+        await sendLeadEmail({
+          to_email: recipient.email,
+          to_name: recipient.name,
+          subject: emailSubject,
+          message: emailBody,
+        })
+        sent++
+      } catch (error) {
+        failed++
+        console.error(error)
+      }
+      setBulkProgress(Math.round(((i + 1) / recipients.length) * 100))
     }
-    
-    setBulkCampaigns(prev => [{
-      id: prev.length + 1,
-      name: bulkSubject.slice(0, 30) + "...",
-      recipients: total,
-      sentAt: new Date().toLocaleString(),
-      openRate: 0,
-      status: "Sending"
-    }, ...prev])
-    
+
+    setBulkCampaigns((prev) => [
+      {
+        id: prev.length + 1,
+        name: bulkSubject.slice(0, 30) + (bulkSubject.length > 30 ? "..." : ""),
+        recipients: sent,
+        sentAt: new Date().toLocaleString(),
+        openRate: 0,
+        status: sent > 0 ? "Completed" : "Failed",
+      },
+      ...prev,
+    ])
+
     setIsBulkSending(false)
     setBulkSubject("")
     setBulkBody("")
     setSelectedRecipients([])
-    toast.success(`Bulk email sent to ${total} recipients!`)
+
+    if (sent > 0) {
+      toast.success(`Bulk email sent to ${sent} recipient${sent === 1 ? "" : "s"}!`)
+    }
+    if (failed > 0) {
+      toast.error(`${failed} email(s) failed to send`)
+    }
   }
 
-  const filteredLeads = mockLeads.filter(lead =>
+  const filteredLeads = leads.filter((lead) =>
     lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     lead.email.toLowerCase().includes(searchTerm.toLowerCase())
   )
@@ -341,7 +445,7 @@ export default function BDEEmailsPage() {
                     <SelectValue placeholder="Choose a lead..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {mockLeads.map(lead => (
+                    {leads.map(lead => (
                       <SelectItem key={lead.id} value={lead.id}>
                         {lead.name} ({lead.email})
                       </SelectItem>

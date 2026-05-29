@@ -1,8 +1,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { DashboardLayout } from "@/components/shared/dashboard-layout"
-import { trainerNavItems } from "@/lib/nav-items"
 import { Modal } from "@/components/shared/modal"
 import {
   MessageSquare,
@@ -219,23 +217,20 @@ export default function TrainerQueriesPage() {
 
   if (isLoading) {
     return (
-      <DashboardLayout navItems={trainerNavItems} roleLabel="Trainer">
-        <div className="space-y-6">
-          <Skeleton className="h-10 w-48" />
-          <div className="flex gap-4">
-            <Skeleton className="h-10 flex-1" />
-            <Skeleton className="h-10 w-32" />
-            <Skeleton className="h-10 w-32" />
-          </div>
-          <Skeleton className="h-[500px] w-full" />
+      <div className="space-y-6">
+        <Skeleton className="h-10 w-48" />
+        <div className="flex gap-4">
+          <Skeleton className="h-10 flex-1" />
+          <Skeleton className="h-10 w-32" />
+          <Skeleton className="h-10 w-32" />
         </div>
-      </DashboardLayout>
+        <Skeleton className="h-[500px] w-full" />
+      </div>
     )
   }
 
   return (
-    <DashboardLayout navItems={trainerNavItems} roleLabel="Trainer">
-      <div className="space-y-6">
+    <div className="space-y-6">
         {/* Header */}
         <div>
           <h1 className="text-2xl font-bold">Student Queries</h1>
@@ -491,7 +486,6 @@ export default function TrainerQueriesPage() {
             </div>
           )}
         </Modal>
-      </div>
-    </DashboardLayout>
+    </div>
   )
 }

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { StatCard } from '@/components/shared/stat-card';
-import { mockLeads } from '@/lib/mock-data';
+import { useLeads, CURRENT_BDE } from '@/contexts/leads-context';
 import {
   BarChart,
   Bar,
@@ -24,6 +24,7 @@ import {
 import { Users, Phone, UserCheck, TrendingUp } from 'lucide-react';
 
 export default function BDEReportsPage() {
+  const { leads } = useLeads();
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('month');
 
@@ -32,8 +33,7 @@ export default function BDEReportsPage() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Calculate stats for current BDE (mock: Rahul Sharma)
-  const myLeads = mockLeads.filter(l => l.assignedBde === 'Rahul Sharma');
+  const myLeads = leads.filter((l) => l.assignedBde === CURRENT_BDE);
   const totalAssigned = myLeads.length;
   const contacted = myLeads.filter(l => l.status !== 'New Lead').length;
   const converted = myLeads.filter(l => l.status === 'Converted').length;

@@ -2,7 +2,8 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { mockCourses } from '@/lib/mock-data';
+import { mockCourses, type Lead } from '@/lib/mock-data';
+import { useLeads } from '@/contexts/leads-context';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,6 +32,7 @@ const priorities = ['Hot', 'Warm', 'Cold'];
 
 export default function AddLeadPage() {
   const router = useRouter();
+  const { addLead } = useLeads();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     fullName: '',
@@ -38,24 +40,38 @@ export default function AddLeadPage() {
     phone: '',
     courseInterest: '',
     source: '',
-    priority: 'Warm',
+    priority: 'Warm' as Lead['priority'],
     assignedBde: 'Rahul Sharma',
     notes: '',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.source || !formData.courseInterest) {
+      toast.error('Please select course and lead source');
+      return;
+    }
+
     setIsSubmitting(true);
+    await new Promise((resolve) => setTimeout(resolve, 500));
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
-
-    toast.success('Lead created successfully!', {
-      description: `${formData.fullName} has been added to the pipeline.`,
+    addLead({
+      name: formData.fullName,
+      email: formData.email,
+      phone: formData.phone,
+      source: formData.source as Lead['source'],
+      courseInterest: formData.courseInterest,
+      priority: formData.priority,
+      assignedBde: formData.assignedBde,
+      notes: formData.notes,
     });
 
+    toast.success('Lead added to pipeline!');
     setIsSubmitting(false);
-    router.push('/bde/dashboard');
+
+    setTimeout(() => {
+      router.push('/bde/dashboard');
+    }, 1000);
   };
 
   return (
@@ -67,7 +83,6 @@ export default function AddLeadPage() {
 
       <div className="rounded-xl border border-border bg-card p-6">
         <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Full Name */}
           <div className="space-y-2">
             <Label htmlFor="fullName">Full Name *</Label>
             <Input
@@ -79,7 +94,6 @@ export default function AddLeadPage() {
             />
           </div>
 
-          {/* Email and Phone */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email *</Label>
@@ -104,7 +118,6 @@ export default function AddLeadPage() {
             </div>
           </div>
 
-          {/* Course Interest and Source */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="courseInterest">Course Interest *</Label>
@@ -144,13 +157,14 @@ export default function AddLeadPage() {
             </div>
           </div>
 
-          {/* Priority and Assigned BDE */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="priority">Priority</Label>
               <Select
                 value={formData.priority}
-                onValueChange={(value) => setFormData({ ...formData, priority: value })}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, priority: value as Lead['priority'] })
+                }
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -192,7 +206,6 @@ export default function AddLeadPage() {
             </div>
           </div>
 
-          {/* Notes */}
           <div className="space-y-2">
             <Label htmlFor="notes">Notes</Label>
             <Textarea
@@ -204,13 +217,8 @@ export default function AddLeadPage() {
             />
           </div>
 
-          {/* Submit Button */}
           <div className="flex justify-end gap-3 pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => router.back()}
-            >
+            <Button type="button" variant="outline" onClick={() => router.back()}>
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>
