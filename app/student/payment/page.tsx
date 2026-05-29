@@ -4,6 +4,9 @@ import { useState, useEffect } from "react"
 import { DashboardLayout } from "@/components/shared/dashboard-layout"
 import { studentNavItems } from "@/lib/nav-items"
 import { mockCourses } from "@/lib/mock-data"
+import BuyCourseButton from "@/components/shared/BuyCourseButton"
+import { useAuth } from "@/contexts/auth-context"
+import { mockStudents } from "@/lib/mock-data"
 import {
   CreditCard,
   Smartphone,
@@ -79,15 +82,18 @@ const paymentMethods: PaymentMethodInfo[] = [
 ]
 
 export default function PaymentPage() {
+  const { user } = useAuth()
   const [isLoading, setIsLoading] = useState(true)
   const [step, setStep] = useState<Step>(1)
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null)
   const [paymentInput, setPaymentInput] = useState("")
   const [isProcessing, setIsProcessing] = useState(false)
   const [progress, setProgress] = useState(0)
+  const [useRazorpay, setUseRazorpay] = useState(false)
 
   // Mock course data
   const course = mockCourses[0]
+  const student = mockStudents.find((s) => s.email === user?.email) || mockStudents[0]
   const originalPrice = course.price
   const discount = 2000
   const finalAmount = originalPrice - discount
@@ -167,46 +173,117 @@ export default function PaymentPage() {
         {/* Step 1: Order Summary */}
         {step === 1 && (
           <div className="rounded-xl border bg-card p-6 space-y-4">
-            <h2 className="text-xl font-semibold">Order Summary</h2>
-            
-            <div className="rounded-lg bg-muted/50 p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Course</span>
-                <span className="font-medium">{course.title}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Duration</span>
-                <span>{course.duration}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Trainer</span>
-                <span>{course.trainer}</span>
-              </div>
-              <hr />
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Original Price</span>
-                <span>Rs. {originalPrice.toLocaleString()}</span>
-              </div>
-              <div className="flex items-center justify-between text-green-600">
-                <span>Discount</span>
-                <span>- Rs. {discount.toLocaleString()}</span>
-              </div>
-              <hr />
-              <div className="flex items-center justify-between text-lg font-bold">
-                <span>Total Amount</span>
-                <span className="text-primary">Rs. {finalAmount.toLocaleString()}</span>
-              </div>
+            <h2 className="text-xl font-semibold">Choose Payment Method</h2>
+            <p className="text-sm text-muted-foreground">
+              Select how you want to pay for this course
+            </p>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              {/* Razorpay Option */}
+              <button
+                onClick={() => {
+                  setUseRazorpay(true)
+                  setStep(1)
+                }}
+                className="flex flex-col gap-4 rounded-lg border p-4 transition-all hover:border-primary hover:bg-primary/5"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-semibold">Razorpay</h3>
+                    <p className="text-sm text-muted-foreground">UPI, Card, Netbanking</p>
+                  </div>
+                  <CreditCard className="h-6 w-6 text-primary" />
+                </div>
+                <div className="rounded-lg bg-green-500/10 p-2 text-xs font-medium text-green-600">
+                  Fastest & Most Secure
+                </div>
+              </button>
+
+              {/* Traditional Payment Option */}
+              <button
+                onClick={() => {
+                  setUseRazorpay(false)
+                  setStep(2)
+                }}
+                className="flex flex-col gap-4 rounded-lg border p-4 transition-all hover:border-primary hover:bg-primary/5"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-semibold">Traditional</h3>
+                    <p className="text-sm text-muted-foreground">Multiple options</p>
+                  </div>
+                  <Wallet className="h-6 w-6 text-blue-500" />
+                </div>
+                <div className="rounded-lg bg-blue-500/10 p-2 text-xs font-medium text-blue-600">
+                  View all methods
+                </div>
+              </button>
             </div>
 
-            <Button onClick={() => setStep(2)} className="w-full">
-              Proceed to Payment
-              <ChevronRight className="ml-2 h-4 w-4" />
-            </Button>
+            {/* Razorpay Quick Action */}
+            {useRazorpay && (
+              <div className="rounded-lg bg-gradient-to-r from-primary/10 to-primary/5 p-6 space-y-4">
+                <div>
+                  <h3 className="font-semibold mb-2">Order Summary</h3>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Course</span>
+                      <span>{course.title}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Original Price</span>
+                      <span>₹{originalPrice.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between text-green-600">
+                      <span>Discount</span>
+                      <span>-₹{discount.toLocaleString()}</span>
+                    </div>
+                    <div className="border-t pt-2 flex justify-between font-bold">
+                      <span>Total</span>
+                      <span className="text-primary">₹{finalAmount.toLocaleString()}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <BuyCourseButton
+                  courseId={course.id}
+                  courseName={course.title}
+                  price={finalAmount}
+                  studentId={student.id}
+                  studentEmail={user?.email}
+                  studentName={student.name}
+                  className="w-full"
+                />
+
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Shield className="h-4 w-4 text-green-600" />
+                  <span>Secured with 256-bit SSL encryption</span>
+                </div>
+
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => {
+                    setUseRazorpay(false)
+                    setStep(2)
+                  }}
+                >
+                  See other payment methods
+                </Button>
+              </div>
+            )}
+
+            {!useRazorpay && (
+              <Button onClick={() => setStep(2)} className="w-full">
+                View Traditional Methods
+                <ChevronRight className="ml-2 h-4 w-4" />
+              </Button>
+            )}
           </div>
         )}
 
         {/* Step 2: Select Payment Method */}
-        {step === 2 && (
+        {step === 2 && !useRazorpay && (
           <div className="rounded-xl border bg-card p-6 space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold">Select Payment Method</h2>

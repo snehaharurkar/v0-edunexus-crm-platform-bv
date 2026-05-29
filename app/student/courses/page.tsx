@@ -5,6 +5,7 @@ import { DashboardLayout } from "@/components/shared/dashboard-layout"
 import { studentNavItems } from "@/lib/nav-items"
 import { useAuth } from "@/contexts/auth-context"
 import { mockStudents, mockCourses } from "@/lib/mock-data"
+import BuyCourseButton from "@/components/shared/BuyCourseButton"
 import {
   BookOpen,
   Video,
@@ -114,6 +115,16 @@ export default function StudentCourses() {
                 </div>
                 <span className="font-medium">{student.progress}%</span>
               </div>
+              <BuyCourseButton
+                courseId={enrolledCourse.id}
+                courseName={enrolledCourse.name}
+                price={enrolledCourse.price}
+                studentId={student.id}
+                studentEmail={user?.email}
+                studentName={student.name}
+                size="sm"
+                className="mt-2"
+              />
             </div>
           </div>
         </div>

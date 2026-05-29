@@ -6,6 +6,7 @@ import { studentNavItems } from "@/lib/nav-items"
 import { StatCard } from "@/components/shared/stat-card"
 import { useAuth } from "@/contexts/auth-context"
 import { mockStudents, mockJobs } from "@/lib/mock-data"
+import BuyCourseButton from "@/components/shared/BuyCourseButton"
 import {
   CalendarDays,
   CheckCircle,
@@ -141,6 +142,26 @@ export default function StudentDashboard() {
             value="8"
             icon={<Briefcase className="h-6 w-6" />}
           />
+        </div>
+
+        {/* Quick Action - Buy Course */}
+        <div className="rounded-xl border bg-gradient-to-r from-primary/10 to-primary/5 p-6">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold">Want to expand your skills?</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Browse our other courses and enroll today
+              </p>
+            </div>
+            <BuyCourseButton
+              courseId="premium-course-1"
+              courseName="Advanced Web Development"
+              price={7999}
+              studentId={student.id}
+              studentEmail={user?.email}
+              studentName={student.name}
+            />
+          </div>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-2">
