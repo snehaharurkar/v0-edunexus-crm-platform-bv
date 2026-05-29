@@ -1,313 +1,193 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { DataTable } from '@/components/shared/data-table';
-import { Modal } from '@/components/shared/modal';
-import { StatusBadge, getStatusBadgeVariant } from '@/components/shared/badge';
-import { mockCourses, mockTrainers, type Course } from '@/lib/mock-data';
-import { toast } from 'sonner';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
+import { Plus, Trash2, Pencil, Play, Users, Clock, IndianRupee, Search } from 'lucide-react';
+
+interface Course {
+  id: string;
+  title: string;
+  description: string;
+  trainer: string;
+  price: number;
+  duration: string;
+  batches: number;
+  status: string;
+  video_url: string;
+  thumbnail_url: string;
+}
+
+const getYoutubeThumbnail = (url: string) => {
+  if (!url) return null;
+  const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/);
+  return match ? `https://img.youtube.com/vi/${match[1]}/hqdefault.jpg` : null;
+};
+
+const statusColors: Record<string, string> = {
+  Active: 'bg-green-100 text-green-700',
+  Upcoming: 'bg-blue-100 text-blue-700',
+  Completed: 'bg-gray-100 text-gray-600',
+};
 
 export default function CoursesPage() {
-  const [loading, setLoading] = useState(true);
   const [courses, setCourses] = useState<Course[]>([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingCourse, setEditingCourse] = useState<Course | null>(null);
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    duration: '',
-    price: '',
-    trainerId: '',
-    status: 'Active' as Course['status'],
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [showModal, setShowModal] = useState(false);
+  const [editCourse, setEditCourse] = useState<Course | null>(null);
+  const [form, setForm] = useState({
+    title: '', description: '', trainer: '', price: '',
+    duration: '', batches: '1', status: 'Active', video_url: '', thumbnail_url: ''
   });
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setCourses(mockCourses);
-      setLoading(false);
-    }, 1000);
-    return () => clearTimeout(timer);
-  }, []);
+  const fetchCourses = async () => {
+    setLoading(true);
+    const { data, error } = await supabase.from('courses').select('*').order('created_at', { ascending: false });
+    if (error) toast.error('Failed to load courses');
+    else setCourses(data || []);
+    setLoading(false);
+  };
 
-  const handleOpenModal = (course?: Course) => {
-    if (course) {
-      setEditingCourse(course);
-      setFormData({
-        title: course.title,
-        description: course.description,
-        duration: course.duration,
-        price: String(course.price),
-        trainerId: course.trainerId,
-        status: course.status,
-      });
+  useEffect(() => { fetchCourses(); }, []);
+
+  const handleSave = async () => {
+    if (!form.title || !form.trainer) return toast.error('Title and trainer are required');
+    const payload = { ...form, price: Number(form.price), batches: Number(form.batches) };
+    if (editCourse) {
+      const { error } = await supabase.from('courses').update(payload).eq('id', editCourse.id);
+      if (error) toast.error('Failed to update'); else { toast.success('Course updated!'); setEditCourse(null); setShowModal(false); fetchCourses(); }
     } else {
-      setEditingCourse(null);
-      setFormData({
-        title: '',
-        description: '',
-        duration: '',
-        price: '',
-        trainerId: '',
-        status: 'Active',
-      });
-    }
-    setIsModalOpen(true);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    const trainer = mockTrainers.find(t => t.id === formData.trainerId);
-
-    if (editingCourse) {
-      setCourses(courses.map(c => 
-        c.id === editingCourse.id 
-          ? {
-              ...c,
-              title: formData.title,
-              description: formData.description,
-              duration: formData.duration,
-              price: Number(formData.price),
-              trainerId: formData.trainerId,
-              trainer: trainer?.name || '',
-              status: formData.status,
-            }
-          : c
-      ));
-      toast.success('Course updated successfully');
-    } else {
-      const newCourse: Course = {
-        id: String(courses.length + 1),
-        title: formData.title,
-        description: formData.description,
-        duration: formData.duration,
-        price: Number(formData.price),
-        trainerId: formData.trainerId,
-        trainer: trainer?.name || '',
-        batches: 1,
-        status: formData.status,
-      };
-      setCourses([...courses, newCourse]);
-      toast.success('Course created successfully');
-    }
-
-    setIsSubmitting(false);
-    setIsModalOpen(false);
-  };
-
-  const handleDelete = (course: Course) => {
-    if (confirm(`Are you sure you want to delete "${course.title}"?`)) {
-      setCourses(courses.filter(c => c.id !== course.id));
-      toast.success('Course deleted successfully');
+      const { error } = await supabase.from('courses').insert([payload]);
+      if (error) toast.error('Failed to add'); else { toast.success('Course added!'); setShowModal(false); fetchCourses(); }
     }
   };
 
-  const columns = [
-    {
-      key: 'title',
-      label: 'Course Title',
-      render: (course: Course) => (
-        <div>
-          <p className="font-medium">{course.title}</p>
-          <p className="text-sm text-muted-foreground truncate max-w-xs">
-            {course.description}
-          </p>
-        </div>
-      ),
-    },
-    { key: 'trainer', label: 'Trainer' },
-    {
-      key: 'price',
-      label: 'Price',
-      render: (course: Course) => (
-        <span className="font-medium">₹{course.price.toLocaleString()}</span>
-      ),
-    },
-    { key: 'duration', label: 'Duration' },
-    {
-      key: 'batches',
-      label: 'Batches',
-      render: (course: Course) => (
-        <span className="font-medium">{course.batches}</span>
-      ),
-    },
-    {
-      key: 'status',
-      label: 'Status',
-      render: (course: Course) => (
-        <StatusBadge variant={getStatusBadgeVariant(course.status)}>
-          {course.status}
-        </StatusBadge>
-      ),
-    },
-    {
-      key: 'actions',
-      label: 'Actions',
-      render: (course: Course) => (
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => handleOpenModal(course)}
-          >
-            <Pencil className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 text-destructive hover:text-destructive"
-            onClick={() => handleDelete(course)}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
-      ),
-    },
-  ];
+  const handleDelete = async (id: string) => {
+    if (!confirm('Delete this course?')) return;
+    const { error } = await supabase.from('courses').delete().eq('id', id);
+    if (error) toast.error('Failed to delete'); else { toast.success('Deleted!'); fetchCourses(); }
+  };
+
+  const openAdd = () => {
+    setForm({ title: '', description: '', trainer: '', price: '', duration: '', batches: '1', status: 'Active', video_url: '', thumbnail_url: '' });
+    setEditCourse(null);
+    setShowModal(true);
+  };
+
+  const openEdit = (c: Course) => {
+    setForm({ title: c.title, description: c.description, trainer: c.trainer, price: String(c.price), duration: c.duration, batches: String(c.batches), status: c.status, video_url: c.video_url || '', thumbnail_url: c.thumbnail_url || '' });
+    setEditCourse(c);
+    setShowModal(true);
+  };
+
+  const filtered = courses.filter(c =>
+    c.title.toLowerCase().includes(search.toLowerCase()) ||
+    c.trainer.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Courses</h1>
-          <p className="text-muted-foreground mt-1">Manage all courses and batches</p>
+          <h1 className="text-2xl font-bold">Courses</h1>
+          <p className="text-muted-foreground">Manage all courses and batches</p>
         </div>
-        <Button onClick={() => handleOpenModal()}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Course
-        </Button>
+        <Button onClick={openAdd}><Plus className="h-4 w-4 mr-2" />Add Course</Button>
       </div>
 
-      <DataTable
-        data={courses}
-        columns={columns}
-        searchPlaceholder="Search courses..."
-        loading={loading}
-        selectable
-      />
+      <div className="relative max-w-sm">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input placeholder="Search courses..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+      </div>
 
-      {/* Add/Edit Course Modal */}
-      <Modal
-        open={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title={editingCourse ? 'Edit Course' : 'Add New Course'}
-        description={editingCourse ? 'Update course information' : 'Create a new course'}
-        size="lg"
-      >
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="title">Course Title</Label>
-            <Input
-              id="title"
-              value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              placeholder="Enter course title"
-              required
-            />
-          </div>
+      {loading ? (
+        <div className="text-center py-12 text-muted-foreground">Loading courses...</div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {filtered.map(course => {
+            const thumb = getYoutubeThumbnail(course.video_url) || course.thumbnail_url;
+            return (
+              <div key={course.id} className="bg-card rounded-xl border overflow-hidden hover:shadow-lg transition-shadow group">
+                <div className="relative aspect-video bg-muted overflow-hidden">
+                  {thumb ? (
+                    <img src={thumb} alt={course.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
+                      <Play className="h-12 w-12 text-primary/40" />
+                    </div>
+                  )}
+                  {course.video_url && (
+                    <a href={course.video_url} target="_blank" rel="noopener noreferrer"
+                      className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="bg-white rounded-full p-3 shadow-lg">
+                        <Play className="h-6 w-6 text-primary fill-primary" />
+                      </div>
+                    </a>
+                  )}
+                  <span className={`absolute top-2 right-2 px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[course.status] || 'bg-gray-100'}`}>
+                    {course.status}
+                  </span>
+                </div>
+                <div className="p-4 space-y-3">
+                  <div>
+                    <h3 className="font-semibold text-base leading-tight">{course.title}</h3>
+                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{course.description}</p>
+                  </div>
+                  <p className="text-sm text-muted-foreground">👤 {course.trainer}</p>
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{course.duration}</span>
+                    <span className="flex items-center gap-1"><Users className="h-3 w-3" />{course.batches} batches</span>
+                    <span className="flex items-center gap-1 text-primary font-semibold"><IndianRupee className="h-3 w-3" />{course.price.toLocaleString()}</span>
+                  </div>
+                  <div className="flex gap-2 pt-1">
+                    <Button size="sm" variant="outline" className="flex-1" onClick={() => openEdit(course)}>
+                      <Pencil className="h-3 w-3 mr-1" />Edit
+                    </Button>
+                    <Button size="sm" variant="outline" className="text-red-500 hover:text-red-600 hover:bg-red-50" onClick={() => handleDelete(course.id)}>
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
-          <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Enter course description"
-              rows={3}
-              required
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="duration">Duration</Label>
-              <Input
-                id="duration"
-                value={formData.duration}
-                onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
-                placeholder="e.g., 3 months"
-                required
-              />
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-card rounded-xl p-6 w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto">
+            <h2 className="text-lg font-semibold mb-4">{editCourse ? 'Edit Course' : 'Add New Course'}</h2>
+            <div className="space-y-3">
+              <Input placeholder="Course Title" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} />
+              <textarea placeholder="Description" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })}
+                className="w-full border rounded-lg px-3 py-2 bg-background text-sm min-h-[80px] resize-none" />
+              <Input placeholder="Trainer Name" value={form.trainer} onChange={e => setForm({ ...form, trainer: e.target.value })} />
+              <div className="grid grid-cols-2 gap-3">
+                <Input placeholder="Price (₹)" type="number" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} />
+                <Input placeholder="Duration (e.g. 3 months)" value={form.duration} onChange={e => setForm({ ...form, duration: e.target.value })} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <Input placeholder="Batches" type="number" value={form.batches} onChange={e => setForm({ ...form, batches: e.target.value })} />
+                <select className="border rounded-lg px-3 py-2 bg-background text-sm" value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}>
+                  <option>Active</option>
+                  <option>Upcoming</option>
+                  <option>Completed</option>
+                </select>
+              </div>
+              <Input placeholder="YouTube Video URL (optional)" value={form.video_url} onChange={e => setForm({ ...form, video_url: e.target.value })} />
+              <Input placeholder="Thumbnail URL (optional)" value={form.thumbnail_url} onChange={e => setForm({ ...form, thumbnail_url: e.target.value })} />
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="price">Price (₹)</Label>
-              <Input
-                id="price"
-                type="number"
-                value={formData.price}
-                onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                placeholder="Enter price"
-                required
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="trainer">Assign Trainer</Label>
-              <Select
-                value={formData.trainerId}
-                onValueChange={(value) => setFormData({ ...formData, trainerId: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select trainer" />
-                </SelectTrigger>
-                <SelectContent>
-                  {mockTrainers.map((trainer) => (
-                    <SelectItem key={trainer.id} value={trainer.id}>
-                      {trainer.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="status">Status</Label>
-              <Select
-                value={formData.status}
-                onValueChange={(value) => setFormData({ ...formData, status: value as Course['status'] })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Active">Active</SelectItem>
-                  <SelectItem value="Upcoming">Upcoming</SelectItem>
-                  <SelectItem value="Completed">Completed</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="flex gap-2 mt-5 justify-end">
+              <Button variant="outline" onClick={() => { setShowModal(false); setEditCourse(null); }}>Cancel</Button>
+              <Button onClick={handleSave}>Save Course</Button>
             </div>
           </div>
-
-          <div className="flex justify-end gap-3 pt-4">
-            <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Saving...' : editingCourse ? 'Update Course' : 'Create Course'}
-            </Button>
-          </div>
-        </form>
-      </Modal>
+        </div>
+      )}
     </div>
   );
 }

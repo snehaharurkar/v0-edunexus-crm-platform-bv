@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -43,10 +43,24 @@ interface DashboardLayoutProps {
 export function DashboardLayout({ children, navItems, roleLabel }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [userName, setUserName] = useState('User');
+  const [userEmail, setUserEmail] = useState('user@example.com');
   const pathname = usePathname();
   const router = useRouter();
 
   const unreadCount = mockNotifications.filter(n => !n.read).length;
+
+  // ✅ Load from localStorage only after mount (client-side only)
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('user');
+      if (stored) {
+        const user = JSON.parse(stored);
+        setUserName(user.name || 'User');
+        setUserEmail(user.email || 'user@example.com');
+      }
+    } catch (e) {}
+  }, []);
 
   const handleLogout = () => {
     try {
@@ -57,28 +71,6 @@ export function DashboardLayout({ children, navItems, roleLabel }: DashboardLayo
     setTimeout(() => {
       window.location.href = '/login';
     }, 500);
-  };
-
-  const getUserName = () => {
-    try {
-      const stored = localStorage.getItem('user');
-      if (stored) {
-        const user = JSON.parse(stored);
-        return user.name || 'User';
-      }
-    } catch (e) {}
-    return 'User';
-  };
-
-  const getUserEmail = () => {
-    try {
-      const stored = localStorage.getItem('user');
-      if (stored) {
-        const user = JSON.parse(stored);
-        return user.email || 'user@example.com';
-      }
-    } catch (e) {}
-    return 'user@example.com';
   };
 
   const getNotificationIcon = (type: string) => {
@@ -158,7 +150,7 @@ export function DashboardLayout({ children, navItems, roleLabel }: DashboardLayo
             </ul>
           </nav>
 
-          {/* Logout button in sidebar */}
+          {/* User info + Logout in sidebar */}
           <div className="border-t border-sidebar-border p-4">
             <div className="flex items-center gap-3 mb-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-sidebar-accent text-sidebar-accent-foreground">
@@ -166,10 +158,10 @@ export function DashboardLayout({ children, navItems, roleLabel }: DashboardLayo
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-sidebar-foreground truncate">
-                  {getUserName()}
+                  {userName}
                 </p>
                 <p className="text-xs text-sidebar-foreground/60 truncate">
-                  {getUserEmail()}
+                  {userEmail}
                 </p>
               </div>
             </div>
@@ -260,7 +252,7 @@ export function DashboardLayout({ children, navItems, roleLabel }: DashboardLayo
                     <User className="h-4 w-4" />
                   </div>
                   <div className="hidden md:block text-left">
-                    <p className="text-sm font-medium">{getUserName()}</p>
+                    <p className="text-sm font-medium">{userName}</p>
                     <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
                       {roleLabel}
                     </span>
