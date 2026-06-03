@@ -8,6 +8,7 @@ import React, {
   useState,
 } from 'react';
 import { mockUsers, type User, type UserRole } from '@/lib/mock-data';
+import { supabase } from '@/lib/supabase';
 
 const AUTH_KEYS = {
   user: 'user',
@@ -60,48 +61,60 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const restored = restoreAuthUser();
-    if (restored) {
-      setUser(restored);
-    }
+    if (restored) setUser(restored);
     setIsLoading(false);
   }, []);
 
   const login = useCallback(
     async (email: string, password: string, role: UserRole): Promise<boolean> => {
       setLoading(true);
-
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      const validCredentials: Record<
-        string,
-        { email: string; password: string; role: UserRole }
-      > = {
-        admin: { email: 'admin@test.com', password: 'password', role: 'admin' },
-        bde: { email: 'bde@test.com', password: 'password', role: 'bde' },
-        trainer: {
-          email: 'trainer@test.com',
-          password: 'password',
-          role: 'trainer',
-        },
-        student: {
-          email: 'student@test.com',
-          password: 'password',
-          role: 'student',
-        },
+      // 1. Check mock users (demo mode)
+      const validCredentials: Record<string, { email: string; password: string; role: UserRole }> = {
+        admin:   { email: 'admin@test.com',   password: 'password', role: 'admin' },
+        bde:     { email: 'bde@test.com',     password: 'password', role: 'bde' },
+        trainer: { email: 'trainer@test.com', password: 'password', role: 'trainer' },
+        student: { email: 'student@test.com', password: 'password', role: 'student' },
       };
 
       const creds = validCredentials[role];
-
       if (creds && email === creds.email && password === creds.password) {
-        const foundUser = mockUsers.find(
-          (u) => u.email === email && u.role === role
-        );
+        const foundUser = mockUsers.find((u) => u.email === email && u.role === role);
         if (foundUser) {
           setUser(foundUser);
           persistAuth(foundUser);
           setLoading(false);
           return true;
         }
+      }
+
+      // 2. Check Supabase users (real signups)
+      try {
+        const { data } = await supabase
+          .from('users')
+          .select('*')
+          .eq('email', email)
+          .eq('password', password)
+          .eq('role', role)
+          .single();
+
+        if (data) {
+          const realUser: User = {
+            id: data.id,
+            name: data.name,
+            email: data.email,
+            role: data.role,
+            status: data.status || 'active',
+            createdAt: data.created_at || new Date().toISOString(),
+          };
+          setUser(realUser);
+          persistAuth(realUser);
+          setLoading(false);
+          return true;
+        }
+      } catch (err) {
+        console.error('Supabase login error:', err);
       }
 
       setLoading(false);

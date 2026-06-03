@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { ExcelImport } from '@/components/shared/excel-import'
 import {
   Select,
   SelectContent,
@@ -205,6 +206,11 @@ export default function AddLeadPage() {
               </Select>
             </div>
           </div>
+
+          <div className="flex items-center justify-between mb-6">
+  <h1 className="text-2xl font-bold">Add New Lead</h1>
+  <ExcelImport />
+</div>
 
           <div className="space-y-2">
             <Label htmlFor="notes">Notes</Label>

@@ -6,7 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { Download, TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
-// import PaymentButton from '@/components/shared/PaymentButton';
+import { sendWhatsApp, messages } from '@/lib/whatsapp'
+declare global {
+  interface Window { Razorpay: any; }
+}
 
 interface Transaction {
   id: string;
@@ -57,29 +60,37 @@ export default function FinancePage() {
   const pending = transactions.filter(t => t.status === 'Pending').reduce((s, t) => s + t.amount, 0);
   const refunds = transactions.filter(t => t.status === 'Refunded').reduce((s, t) => s + t.amount, 0);
 
-  const downloadInvoice = (t: Transaction) => {
+  const downloadInvoice = async (t: Transaction) => {
+    // Download the invoice file
     const content = `
-EDUNEXUS - PAYMENT INVOICE
-===========================
-Invoice ID  : INV-${t.id.slice(0, 8).toUpperCase()}
-Date        : ${t.date}
-Student     : ${t.student_name}
-Amount      : ₹${t.amount.toLocaleString()}
-Gateway     : ${t.gateway}
-Status      : ${t.status}
-===========================
-Thank you for your payment!
-EduNexus Training Institute
-    `.trim();
-    const blob = new Blob([content], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `Invoice-${t.student_name.replace(' ', '_')}-${t.date}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success('Invoice downloaded!');
-  };
+  EDUNEXUS - PAYMENT INVOICE
+  ===========================
+  Invoice ID  : INV-${t.id.slice(0, 8).toUpperCase()}
+  Date        : ${t.date}
+  Student     : ${t.student_name}
+  Amount      : ₹${t.amount.toLocaleString()}
+  Gateway     : ${t.gateway}
+  Status      : ${t.status}
+  ===========================
+  Thank you for your payment!
+  EduNexus Training Institute
+    `.trim()
+    const blob = new Blob([content], { type: 'text/plain' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `Invoice-${t.student_name.replace(' ', '_')}-${t.date}.txt`
+    a.click()
+    URL.revokeObjectURL(url)
+  
+    // Send WhatsApp notification to admin
+    await sendWhatsApp(
+      '7892671224', // replace with your 10 digit WhatsApp number
+      messages.newEnrollment(t.student_name, 'Course Payment', t.amount)
+    )
+  
+    toast.success('Invoice downloaded & WhatsApp sent!')
+  }
 
   const exportCSV = () => {
     const csv = ['Date,Student,Amount,Gateway,Status'].concat(
@@ -88,6 +99,76 @@ EduNexus Training Institute
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a'); a.href = url; a.download = 'transactions.csv'; a.click();
+  };
+
+  const handlePayment = async (t: Transaction) => {
+    // Load Razorpay script if not loaded
+    if (!window.Razorpay) {
+      await new Promise<void>((resolve) => {
+        const script = document.createElement('script');
+        script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+        script.onload = () => resolve();
+        document.body.appendChild(script);
+      });
+    }
+
+    // 1. Create order
+    const res = await fetch('/api/payment/create-order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        amount: t.amount,
+        receipt: `txn_${t.id}`,
+        notes: { studentId: t.id, courseId: t.course_id || '' },
+      }),
+    });
+    const order = await res.json();
+
+    if (!order.id) {
+      toast.error('Failed to create payment order');
+      return;
+    }
+
+    // 2. Open Razorpay checkout
+    const options = {
+      key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+      amount: order.amount,
+      currency: 'INR',
+      name: 'EduNexus',
+      description: 'Course Enrollment Fee',
+      order_id: order.id,
+      prefill: {
+        name: t.student_name,
+        email: t.student_email || '',
+        contact: t.student_phone || '',
+      },
+      theme: { color: '#4F46E5' },
+      handler: async (response: any) => {
+        // 3. Verify payment
+        const verify = await fetch('/api/payment/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...response,
+            studentId: t.id,
+            courseId: t.course_id || '',
+            amount: t.amount,
+          }),
+        });
+        const result = await verify.json();
+        if (result.success) {
+          toast.success('✅ Payment successful!');
+          fetchTransactions();
+        } else {
+          toast.error('Payment verification failed');
+        }
+      },
+      modal: {
+        ondismiss: () => toast.error('Payment cancelled'),
+      },
+    };
+
+    new window.Razorpay(options).open();
   };
 
   return (
@@ -130,7 +211,7 @@ EduNexus Training Institute
       <Input placeholder="Search transactions..." value={search} onChange={e => setSearch(e.target.value)} className="max-w-sm" />
 
       {/* Table */}
-      <div className="rounded-xl border bg-card overflow-hidden">
+      <div className="rounded-xl border bg-card overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-muted/50">
             <tr>
@@ -140,7 +221,7 @@ EduNexus Training Institute
               <th className="text-left px-4 py-3 font-medium">Gateway</th>
               <th className="text-left px-4 py-3 font-medium">Status</th>
               <th className="text-left px-4 py-3 font-medium">Invoice</th>
-              <th className="text-left px-4 py-3 font-medium">Collect Payment</th>  {/* ← NEW */}
+              <th className="text-left px-4 py-3 font-medium">Collect Payment</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -163,13 +244,17 @@ EduNexus Training Institute
                     <Download className="h-3.5 w-3.5" /> Download
                   </button>
                 </td>
-                {/* ← NEW: Only show Pay button for Pending transactions */}
                 <td className="px-4 py-3">
-                {t.status === 'Pending' ? (
-  <span className="text-xs text-indigo-600 font-medium">Pay ₹{t.amount}</span>
-) : (
-  <span className="text-xs text-muted-foreground">—</span>
-)}
+                  {t.status === 'Pending' ? (
+                    <button
+                      onClick={() => handlePayment(t)}
+                      className="bg-indigo-600 text-white px-3 py-1.5 rounded text-xs font-medium hover:bg-indigo-700"
+                    >
+                      Pay ₹{t.amount.toLocaleString()}
+                    </button>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">—</span>
+                  )}
                 </td>
               </tr>
             ))}

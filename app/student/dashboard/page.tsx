@@ -68,7 +68,21 @@ export default function StudentDashboard() {
     return () => clearTimeout(timer)
   }, [])
 
-  const student = mockStudents.find((s) => s.email === user?.email) || mockStudents[0]
+  const student = {
+    name: user?.name || 'Student',
+    email: user?.email || '',
+    phone: '',
+    course: 'Not enrolled yet',
+    courseId: '',
+    attendance: 0,
+    progress: 0,
+    points: 0,
+    batch: '',
+    lastActive: new Date().toISOString(),
+    status: 'Active' as const,
+    joinedAt: user?.createdAt || new Date().toISOString(),
+    id: user?.id || '',
+  }
   const recentJobs = mockJobs.slice(0, 3)
 
   const upcomingClass = {
@@ -198,7 +212,7 @@ export default function StudentDashboard() {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="rounded-full bg-green-500/10 px-2 py-1 text-xs font-medium text-green-600">
-                      {job.matchPercent}% Match
+                    {(job.id.charCodeAt(0) % 30) + 65}% Match
                     </span>
                   </div>
                 </div>

@@ -53,10 +53,8 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-
     try {
       const success = await login(email, password, role);
-      
       if (success) {
         toast.success('Login successful!', {
           description: `Welcome back! Redirecting to ${role} dashboard...`,
@@ -79,28 +77,26 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-purple-50 p-4">
       <div className="w-full max-w-md">
-        {/* Logo and header */}
+
+        {/* Logo */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary mb-4">
             <GraduationCap className="h-8 w-8 text-primary-foreground" />
           </div>
           <h1 className="text-2xl font-bold text-foreground">EduNexus CRM</h1>
-          <p className="text-muted-foreground mt-1">
-            AI-Powered Training Institute Management
-          </p>
+          <p className="text-muted-foreground mt-1">AI-Powered Training Institute Management</p>
         </div>
 
-        {/* Login card */}
+        {/* Card */}
         <div className="bg-card rounded-2xl border border-border shadow-xl p-8">
           <div className="text-center mb-6">
-            <h2 className="text-xl font-semibold text-card-foreground">Welcome back</h2>
-            <p className="text-sm text-muted-foreground mt-1">
-              Sign in to access your dashboard
-            </p>
+            <h2 className="text-xl font-semibold">Welcome back</h2>
+            <p className="text-sm text-muted-foreground mt-1">Sign in to access your dashboard</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Role selector */}
+
+            {/* Role */}
             <div className="space-y-2">
               <Label htmlFor="role">Select Role</Label>
               <Select value={role} onValueChange={(value) => handleRoleChange(value as UserRole)}>
@@ -110,19 +106,14 @@ export default function LoginPage() {
                 <SelectContent>
                   {roleOptions.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
-                      <span className="flex items-center gap-2">
-                        {option.label}
-                        <span className="text-xs text-muted-foreground">
-                          ({option.email})
-                        </span>
-                      </span>
+                      {option.label} ({option.email})
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
-            {/* Email field */}
+            {/* Email */}
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -135,7 +126,7 @@ export default function LoginPage() {
               />
             </div>
 
-            {/* Password field */}
+            {/* Password */}
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <div className="relative">
@@ -151,46 +142,40 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
             </div>
 
-            {/* Forgot password link */}
+            {/* Forgot password */}
             <div className="flex justify-end">
-              <button
-                type="button"
-                className="text-sm text-primary hover:underline"
-              >
+              <button type="button" className="text-sm text-primary hover:underline">
                 Forgot password?
               </button>
             </div>
 
-            {/* Submit button */}
-            <Button
-              type="submit"
-              className="w-full"
-              size="lg"
-              disabled={isLoading}
-            >
+            {/* Submit */}
+            <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
               {isLoading ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Signing in...
-                </>
-              ) : (
-                'Sign in'
-              )}
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Signing in...</>
+              ) : 'Sign in'}
             </Button>
+
+            {/* Signup link */}
+            <div className="text-center mt-4">
+              <p className="text-sm text-muted-foreground">
+                Don&apos;t have an account?{' '}
+                <a href="/signup" className="text-primary hover:underline font-medium">
+                  Create Account
+                </a>
+              </p>
+            </div>
+
           </form>
 
-          {/* Demo credentials hint */}
+          {/* Demo hint */}
           <div className="mt-6 p-4 rounded-lg bg-muted/50 border border-border">
             <p className="text-xs text-muted-foreground text-center">
               <span className="font-medium">Demo Mode:</span> Select any role above and use password{' '}
@@ -199,7 +184,6 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Footer */}
         <p className="text-center text-xs text-muted-foreground mt-6">
           By signing in, you agree to our Terms of Service and Privacy Policy.
         </p>

@@ -1,8 +1,5 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { DashboardLayout } from "@/components/shared/dashboard-layout"
-import { studentNavItems } from "@/lib/nav-items"
 import {
   User,
   Code,
@@ -16,11 +13,14 @@ import {
   Phone,
   MapPin,
   Globe,
-  Linkedin,
-  Github,
+  ExternalLink,
+  GitBranch
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { DashboardLayout } from "@/components/shared/dashboard-layout"
+import { studentNavItems } from "@/lib/nav-items"
+import { useState, useEffect } from "react"
 
 function Skeleton({ className }: { className?: string }) {
   return <div className={`animate-pulse rounded bg-muted ${className}`} />
@@ -114,9 +114,9 @@ const initialResumeData: ResumeData = {
 
 export default function ResumeBuilder() {
   const [isLoading, setIsLoading] = useState(true)
-  const [currentStep, setCurrentStep] = useState(1)
+  const [currentStep, setCurrentStep] = useState<number>(1)
   const [resumeData, setResumeData] = useState<ResumeData>(initialResumeData)
-  const [newSkill, setNewSkill] = useState("")
+  const [newSkill, setNewSkill] = useState<string>("")
 
   useEffect(() => {
     const timer = setTimeout(() => setIsLoading(false), 800)
@@ -124,7 +124,7 @@ export default function ResumeBuilder() {
   }, [])
 
   const updatePersonal = (field: string, value: string) => {
-    setResumeData((prev) => ({
+    setResumeData((prev: any) => ({
       ...prev,
       personal: { ...prev.personal, [field]: value },
     }))
@@ -132,7 +132,7 @@ export default function ResumeBuilder() {
 
   const addSkill = () => {
     if (newSkill && !resumeData.skills.includes(newSkill)) {
-      setResumeData((prev) => ({
+      setResumeData((prev: any) => ({
         ...prev,
         skills: [...prev.skills, newSkill],
       }))
@@ -141,9 +141,9 @@ export default function ResumeBuilder() {
   }
 
   const removeSkill = (skill: string) => {
-    setResumeData((prev) => ({
+    setResumeData((prev: any) => ({
       ...prev,
-      skills: prev.skills.filter((s) => s !== skill),
+      skills: prev.skills.filter(( s: string) => s !== skill),
     }))
   }
 
@@ -279,7 +279,7 @@ export default function ResumeBuilder() {
                   <Button onClick={addSkill}>Add</Button>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {resumeData.skills.map((skill) => (
+                  {resumeData.skills.map((skill: string) => (
                     <span
                       key={skill}
                       className="flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-sm"
@@ -299,7 +299,7 @@ export default function ResumeBuilder() {
 
             {currentStep === 3 && (
               <div className="space-y-4">
-                {resumeData.experience.map((exp, index) => (
+                {resumeData.experience.map((exp: any, index: number) => (
                   <div key={index} className="rounded-lg border p-4">
                     <div className="grid gap-4 sm:grid-cols-2">
                       <Input placeholder="Job Title" value={exp.title} readOnly />
@@ -327,7 +327,7 @@ export default function ResumeBuilder() {
 
             {currentStep === 4 && (
               <div className="space-y-4">
-                {resumeData.education.map((edu, index) => (
+                {resumeData.education.map((edu: any, index: number) => (
                   <div key={index} className="rounded-lg border p-4">
                     <div className="grid gap-4 sm:grid-cols-2">
                       <Input placeholder="Degree" value={edu.degree} readOnly />
@@ -346,7 +346,7 @@ export default function ResumeBuilder() {
 
             {currentStep === 5 && (
               <div className="space-y-4">
-                {resumeData.projects.map((project, index) => (
+                {resumeData.projects.map((project: any, index: number) => (
                   <div key={index} className="rounded-lg border p-4">
                     <div className="grid gap-4 sm:grid-cols-2">
                       <Input placeholder="Project Name" value={project.name} readOnly />
@@ -377,14 +377,14 @@ export default function ResumeBuilder() {
             <div className="mt-6 flex justify-between">
               <Button
                 variant="outline"
-                onClick={() => setCurrentStep((prev) => Math.max(1, prev - 1))}
+                onClick={() => setCurrentStep((prev: number) => Math.max(1, prev - 1))}
                 disabled={currentStep === 1}
               >
                 <ChevronLeft className="mr-2 h-4 w-4" />
                 Previous
               </Button>
               <Button
-                onClick={() => setCurrentStep((prev) => Math.min(5, prev + 1))}
+                onClick={() => setCurrentStep((prev: number) => Math.min(5, prev + 1))}
                 disabled={currentStep === 5}
               >
                 Next
@@ -419,11 +419,11 @@ export default function ResumeBuilder() {
                   {resumeData.personal.website}
                 </span>
                 <span className="flex items-center gap-1">
-                  <Linkedin className="h-3 w-3" />
+                  <ExternalLink className="h-3 w-3" />
                   {resumeData.personal.linkedin}
                 </span>
                 <span className="flex items-center gap-1">
-                  <Github className="h-3 w-3" />
+                  <GitBranch className="h-3 w-3" />
                   {resumeData.personal.github}
                 </span>
               </div>
@@ -437,7 +437,7 @@ export default function ResumeBuilder() {
             <div className="mt-4">
               <h2 className="text-sm font-bold uppercase text-gray-900">Skills</h2>
               <div className="mt-1 flex flex-wrap gap-1">
-                {resumeData.skills.map((skill) => (
+                {resumeData.skills.map((skill: string) => (
                   <span
                     key={skill}
                     className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-700"
@@ -450,7 +450,7 @@ export default function ResumeBuilder() {
 
             <div className="mt-4">
               <h2 className="text-sm font-bold uppercase text-gray-900">Experience</h2>
-              {resumeData.experience.map((exp, index) => (
+              {resumeData.experience.map((exp: any, index: number) => (
                 <div key={index} className="mt-2">
                   <div className="flex justify-between">
                     <span className="text-sm font-semibold text-gray-900">{exp.title}</span>
@@ -468,7 +468,7 @@ export default function ResumeBuilder() {
 
             <div className="mt-4">
               <h2 className="text-sm font-bold uppercase text-gray-900">Education</h2>
-              {resumeData.education.map((edu, index) => (
+              {resumeData.education.map((edu: any, index: number) => (
                 <div key={index} className="mt-2">
                   <div className="flex justify-between">
                     <span className="text-sm font-semibold text-gray-900">{edu.degree}</span>
@@ -483,7 +483,7 @@ export default function ResumeBuilder() {
 
             <div className="mt-4">
               <h2 className="text-sm font-bold uppercase text-gray-900">Projects</h2>
-              {resumeData.projects.map((project, index) => (
+              {resumeData.projects.map((project: any, index: number) => (
                 <div key={index} className="mt-2">
                   <span className="text-sm font-semibold text-gray-900">{project.name}</span>
                   <p className="text-xs text-gray-600">{project.technologies}</p>
