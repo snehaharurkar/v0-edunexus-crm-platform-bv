@@ -54,6 +54,7 @@ export const trainerNavItems = [
 export const studentNavItems = [
   { label: "Dashboard", href: "/student/dashboard", icon: <Home className="h-5 w-5" /> },
   { label: "My Courses", href: "/student/courses", icon: <BookOpen className="h-5 w-5" /> },
+  { label: "My Classes", href: "/student/classes", icon: <Calendar className="h-5 w-5" /> },
   { label: "AI Mentor", href: "/student/ai-mentor", icon: <Sparkles className="h-5 w-5" /> },
   { label: "Jobs", href: "/student/jobs", icon: <Briefcase className="h-5 w-5" /> },
   { label: "Resume Builder", href: "/student/resume-builder", icon: <FileText className="h-5 w-5" /> },

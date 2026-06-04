@@ -7,7 +7,7 @@ import { ExcelImport } from '@/components/shared/excel-import'
 import Link from 'next/link';
 import {
   Users, GraduationCap, DollarSign, TrendingUp,
-  Award, UserCheck, AlertCircle, BookOpen, Plus
+  UserCheck, AlertCircle, BookOpen, Plus
 } from 'lucide-react';
 
 export default function AdminDashboard() {
@@ -31,7 +31,6 @@ export default function AdminDashboard() {
     setLoading(true);
     try {
       const today = new Date().toISOString().split('T')[0];
-
       const [
         { data: leads },
         { data: students },
@@ -54,7 +53,6 @@ export default function AdminDashboard() {
       const totalCourses = courses?.length || 0;
       const pending = transactions?.filter(t => t.status === 'Pending').length || 0;
       const todayLeads = leads?.filter(l => l.created_at?.startsWith(today)).length || 0;
-
       const revenueThisMonth = transactions
         ?.filter(t => t.status === 'Completed')
         .reduce((sum, t) => sum + (t.amount || 0), 0) || 0;
@@ -64,12 +62,27 @@ export default function AdminDashboard() {
       setRecentTransactions(transactions?.slice(0, 5) || []);
       setPendingPayments(pending);
       setNewLeadsToday(todayLeads);
-
     } catch (err) {
       console.error('Dashboard error:', err);
     } finally {
       setLoading(false);
     }
+  };
+
+  // ✅ This is the key addition — handles Excel import for admin via Supabase
+  const handleAddLead = async (lead: any) => {
+    await supabase.from('leads').insert([{
+      name: lead.name,
+      email: lead.email,
+      phone: lead.phone,
+      source: lead.source,
+      course_interest: lead.courseInterest,
+      priority: lead.priority,
+      notes: lead.notes,
+      assigned_bde: lead.assignedBde,
+      status: 'New Lead',
+    }]);
+    fetchDashboardData(); // refresh stats after import
   };
 
   const statCards = [
@@ -89,23 +102,22 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Dashboard Overview</h1>
-          <p className="text-muted-foreground mt-1">
-            Welcome back! Here's what's happening today.
-          </p>
+          <p className="text-muted-foreground mt-1">Welcome back! Here's what's happening today.</p>
         </div>
-        <button
-          onClick={fetchDashboardData}
-          className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90"
-        >
-          Refresh
-        </button>
+        <div className="flex items-center gap-3">
+          <ExcelImport addLead={handleAddLead} />
+          <button
+            onClick={fetchDashboardData}
+            className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90"
+          >
+            Refresh
+          </button>
+        </div>
       </div>
 
-      {/* Alert Banners */}
       {!loading && (pendingPayments > 0 || newLeadsToday > 0) && (
         <div className="flex flex-wrap gap-3">
           {pendingPayments > 0 && (
@@ -123,7 +135,6 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {statCards.map((stat) => (
           <Link key={stat.title} href={stat.href}>
@@ -141,7 +152,6 @@ export default function AdminDashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Leads */}
         <div className="rounded-xl border bg-card p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold">Recent Leads</h2>
@@ -184,12 +194,6 @@ export default function AdminDashboard() {
           )}
         </div>
 
-        <div className="flex items-center justify-between mb-6">
-  <h1 className="text-2xl font-bold">Add New Lead</h1>
-  <ExcelImport />
-</div>
-
-        {/* Recent Transactions */}
         <div className="rounded-xl border bg-card p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold">Recent Transactions</h2>
@@ -232,9 +236,6 @@ export default function AdminDashboard() {
           )}
         </div>
       </div>
-
-      
-      </div>
-    
+    </div>
   );
 }

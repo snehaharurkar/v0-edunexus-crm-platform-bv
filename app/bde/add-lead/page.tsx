@@ -77,10 +77,13 @@ export default function AddLeadPage() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Add New Lead</h1>
-        <p className="text-muted-foreground mt-1">Enter lead details to add them to your pipeline</p>
-      </div>
+      <div className="flex items-center justify-between">
+  <div>
+    <h1 className="text-2xl font-bold text-foreground">Add New Lead</h1>
+    <p className="text-muted-foreground mt-1">Enter lead details to add them to your pipeline</p>
+  </div>
+  <ExcelImport addLead={addLead} />
+</div>
 
       <div className="rounded-xl border border-border bg-card p-6">
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -207,10 +210,7 @@ export default function AddLeadPage() {
             </div>
           </div>
 
-          <div className="flex items-center justify-between mb-6">
-  <h1 className="text-2xl font-bold">Add New Lead</h1>
-  <ExcelImport />
-</div>
+          
 
           <div className="space-y-2">
             <Label htmlFor="notes">Notes</Label>

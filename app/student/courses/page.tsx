@@ -4,10 +4,11 @@ import { useState, useEffect } from "react"
 import { DashboardLayout } from "@/components/shared/dashboard-layout"
 import { studentNavItems } from "@/lib/nav-items"
 import { useAuth } from "@/contexts/auth-context"
-import { mockStudents, mockCourses } from "@/lib/mock-data"
-import { Video, FileText, ClipboardList, Download, Play, Clock, ShoppingCart, CheckCircle, Lock } from "lucide-react"
+import { mockCourses } from "@/lib/mock-data"
+import { Video, FileText, ClipboardList, Download, Play, Clock, ShoppingCart, CheckCircle, Lock, ExternalLink } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
+import { supabase } from '@/lib/supabase'
 
 declare global { interface Window { Razorpay: any } }
 
@@ -35,13 +36,6 @@ const courseTaglines: Record<string, string> = {
   '5': 'MERN • REST API • DEPLOYMENT',
 }
 
-const recordings = [
-  { id: 1, title: "Introduction & Setup", duration: "1h 30m", date: "May 20, 2024", locked: false },
-  { id: 2, title: "Core Concepts", duration: "2h 15m", date: "May 22, 2024", locked: false },
-  { id: 3, title: "Advanced Topics", duration: "1h 45m", date: "May 24, 2024", locked: true },
-  { id: 4, title: "Project & Practice", duration: "1h 20m", date: "May 26, 2024", locked: true },
-]
-
 const notes = [
   { id: 1, title: "Basics Cheatsheet", size: "2.5 MB", type: "PDF", locked: false },
   { id: 2, title: "Reference Guide", size: "1.8 MB", type: "PDF", locked: false },
@@ -63,10 +57,32 @@ export default function StudentCourses() {
   const [payingCourseId, setPayingCourseId] = useState<string | null>(null)
   const [customAmount, setCustomAmount] = useState<Record<string, string>>({})
   const [paidCourses, setPaidCourses] = useState<Record<string, number>>({})
+  const [classes, setClasses] = useState<any[]>([])
 
   useEffect(() => {
     const timer = setTimeout(() => setIsLoading(false), 800)
     return () => clearTimeout(timer)
+  }, [])
+
+  useEffect(() => {
+    const fetchClasses = async () => {
+      const { data } = await supabase
+        .from('classes')
+        .select('*')
+        .order('date', { ascending: true })
+      if (data) setClasses(data)
+    }
+    fetchClasses()
+
+    // Real-time — when trainer adds a class it shows instantly for students
+    const channel = supabase
+      .channel('student-classes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'classes' }, () => {
+        fetchClasses()
+      })
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
   }, [])
 
   const student = {
@@ -84,6 +100,7 @@ export default function StudentCourses() {
     joinedAt: user?.createdAt || new Date().toISOString(),
     id: user?.id || '',
   }
+
   const enrolledCourse = mockCourses.find((c) => c.id === student.courseId) || mockCourses[0]
 
   const getUnlockPercent = (courseId: string) => {
@@ -162,7 +179,6 @@ export default function StudentCourses() {
     )
   }
 
-  // All enrolled courses including newly paid ones
   const allEnrolledCourses = [
     enrolledCourse,
     ...mockCourses.filter(c => paidCourses[c.id] && c.id !== enrolledCourse.id)
@@ -198,7 +214,6 @@ export default function StudentCourses() {
 
               return (
                 <div key={course.id} className="rounded-xl border bg-card overflow-hidden flex flex-col shadow-sm hover:shadow-md transition-shadow">
-                  {/* Thumbnail — KnowledgeGate style */}
                   <div className={`relative h-44 bg-gradient-to-br ${courseGradients[course.id]} flex flex-col items-center justify-center gap-2 p-4`}>
                     <span className="text-5xl">{courseIcons[course.id]}</span>
                     <p className="text-white/90 text-xs font-bold tracking-widest text-center">{courseTaglines[course.id]}</p>
@@ -214,8 +229,6 @@ export default function StudentCourses() {
                       </div>
                     )}
                   </div>
-
-                  {/* Details */}
                   <div className="p-4 flex flex-col gap-3 flex-1">
                     <h3 className="font-semibold text-base leading-snug">{course.title}</h3>
                     <p className="text-xs text-muted-foreground">{course.description}</p>
@@ -224,8 +237,6 @@ export default function StudentCourses() {
                       <span className="text-xs text-muted-foreground">⏱ {course.duration}</span>
                     </div>
                     <p className="text-xs text-muted-foreground">🎓 {course.trainer}</p>
-
-                    {/* Buy area */}
                     {isPaid && !isPaying ? (
                       <div className="space-y-2 mt-auto">
                         <div className="flex items-center gap-2 text-green-600 text-sm font-medium">
@@ -279,25 +290,17 @@ export default function StudentCourses() {
                 const unlockPct = course.id === student.courseId
                   ? student.progress
                   : Math.min(100, Math.round(((paidCourses[course.id] || 0) / course.price) * 100))
-
                 return (
                   <div key={course.id} className="rounded-xl border bg-card overflow-hidden flex flex-col shadow-sm hover:shadow-md transition-shadow">
-                    {/* Thumbnail */}
                     <div className={`relative h-44 bg-gradient-to-br ${courseGradients[course.id]} flex flex-col items-center justify-center gap-2 p-4`}>
                       <span className="text-5xl">{courseIcons[course.id]}</span>
                       <p className="text-white/90 text-xs font-bold tracking-widest text-center">{courseTaglines[course.id]}</p>
                       <div className="absolute top-2 right-2 bg-green-400 text-green-900 text-xs px-2 py-0.5 rounded-full font-semibold">Active</div>
                     </div>
-
-                    {/* Details */}
                     <div className="p-4 flex flex-col gap-2 flex-1">
                       <h3 className="font-semibold text-base">{course.title}</h3>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <span>📅 Enrolled: {today}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <span>⏳ Valid till: {validTill}</span>
-                      </div>
+                      <div className="text-xs text-muted-foreground"><span>📅 Enrolled: {today}</span></div>
+                      <div className="text-xs text-muted-foreground"><span>⏳ Valid till: {validTill}</span></div>
                       <div className="mt-2">
                         <div className="flex justify-between text-xs mb-1"><span className="text-muted-foreground">Progress</span><span className="font-medium">{unlockPct}%</span></div>
                         <div className="h-2 bg-muted rounded-full overflow-hidden">
@@ -315,7 +318,7 @@ export default function StudentCourses() {
               })}
             </div>
 
-            {/* Course content below */}
+            {/* Course content */}
             <h2 className="text-lg font-semibold mt-2">Course Content — {enrolledCourse.title}</h2>
             <div className="flex gap-2 border-b">
               {(["recordings", "notes", "assignments"] as const).map((tab) => (
@@ -330,28 +333,56 @@ export default function StudentCourses() {
             </div>
 
             <div className="space-y-3">
-              {activeTab === "recordings" && recordings.map((recording, index) => {
-                const locked = isModuleLocked(student.courseId, index, recordings.length) && recording.locked
-                return (
-                  <div key={recording.id} className={`flex items-center justify-between rounded-lg border bg-card p-4 ${locked ? 'opacity-60' : ''}`}>
-                    <div className="flex items-center gap-4">
-                      <div className={`rounded-lg p-2 ${locked ? 'bg-gray-100' : 'bg-primary/10'}`}>
-                        {locked ? <Lock className="h-5 w-5 text-gray-400" /> : <Play className="h-5 w-5 text-primary" />}
-                      </div>
-                      <div>
-                        <h3 className="font-medium">{recording.title}</h3>
-                        <div className="mt-1 flex items-center gap-3 text-sm text-muted-foreground">
-                          <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{recording.duration}</span>
-                          <span>{recording.date}</span>
-                        </div>
-                      </div>
-                    </div>
-                    {locked ? <span className="text-xs text-muted-foreground flex items-center gap-1"><Lock className="h-3 w-3" />Pay more to unlock</span>
-                      : <Button variant="outline" size="sm" className="gap-2"><Play className="h-4 w-4" />Watch</Button>}
+              {/* ── RECORDINGS (real from Supabase) ── */}
+              {activeTab === "recordings" && (
+                classes.length === 0 ? (
+                  <div className="text-center py-12 border rounded-xl bg-card">
+                    <Video className="h-10 w-10 mx-auto mb-3 text-muted-foreground/30" />
+                    <p className="text-muted-foreground font-medium">No classes scheduled yet</p>
+                    <p className="text-xs text-muted-foreground mt-1">Your trainer hasn&apos;t posted any classes yet</p>
                   </div>
+                ) : (
+                  classes.map((cls, index) => {
+                    const locked = isModuleLocked(student.courseId, index, classes.length)
+                    const isPast = new Date(cls.date) < new Date()
+                    return (
+                      <div key={cls.id} className={`flex items-center justify-between rounded-lg border bg-card p-4 ${locked ? 'opacity-60' : ''}`}>
+                        <div className="flex items-center gap-4">
+                          <div className={`rounded-lg p-2 ${locked ? 'bg-gray-100' : 'bg-primary/10'}`}>
+                            {locked ? <Lock className="h-5 w-5 text-gray-400" /> : <Play className="h-5 w-5 text-primary" />}
+                          </div>
+                          <div>
+                            <h3 className="font-medium">{cls.title}</h3>
+                            <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+                              <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{cls.time}</span>
+                              <span>{new Date(cls.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                              <span className="flex items-center gap-1"><Video className="h-3 w-3" />{cls.platform}</span>
+                            </div>
+                            {cls.batch && <span className="text-xs text-muted-foreground mt-0.5 block">Batch: {cls.batch}</span>}
+                            {cls.description && <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{cls.description}</p>}
+                          </div>
+                        </div>
+                        {locked ? (
+                          <span className="text-xs text-muted-foreground flex items-center gap-1 shrink-0">
+                            <Lock className="h-3 w-3" />Pay more to unlock
+                          </span>
+                        ) : (
+                          
+                          <button
+                          onClick={() => window.open(cls.meeting_link, '_blank')}
+                          className={`shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${isPast ? 'border border-muted-foreground/30 text-muted-foreground hover:bg-muted' : 'bg-primary text-primary-foreground hover:opacity-90'}`}
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                          {isPast ? 'View Recording' : 'Join Class'}
+                        </button>
+                        )}
+                      </div>
+                    )
+                  })
                 )
-              })}
+              )}
 
+              {/* ── NOTES ── */}
               {activeTab === "notes" && notes.map((note, index) => {
                 const locked = isModuleLocked(student.courseId, index, notes.length) && note.locked
                 return (
@@ -371,6 +402,7 @@ export default function StudentCourses() {
                 )
               })}
 
+              {/* ── ASSIGNMENTS ── */}
               {activeTab === "assignments" && assignments.map((assignment, index) => {
                 const locked = isModuleLocked(student.courseId, index, assignments.length) && assignment.locked
                 return (
