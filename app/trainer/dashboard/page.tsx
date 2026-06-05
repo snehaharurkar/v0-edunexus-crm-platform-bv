@@ -31,6 +31,7 @@ interface ClassSession {
   description: string
   student_count: number
   auto_reminder: boolean
+  is_demo: boolean
   created_at: string
 }
 
@@ -67,7 +68,9 @@ export default function TrainerClassesPage() {
   const [formData, setFormData] = useState({
     title: '', batch: '', date: '', time: '',
     platform: 'Zoom' as 'Zoom' | 'Google Meet',
-    meetingLink: '', description: '', autoReminder: true,
+    meetingLink: '', description: '',
+    autoReminder: true,
+    isDemo: false,
   })
 
   const fetchClasses = async () => {
@@ -85,9 +88,9 @@ export default function TrainerClassesPage() {
     fetchClasses()
     const channel = supabase
       .channel('classes-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'classes' }, () => {
-        fetchClasses()
-      })
+      .on('postgres_changes', {
+        event: '*', schema: 'public', table: 'classes'
+      }, () => { fetchClasses() })
       .subscribe()
     return () => { supabase.removeChannel(channel) }
   }, [])
@@ -95,6 +98,7 @@ export default function TrainerClassesPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
+
     const payload = {
       title: formData.title,
       batch: formData.batch,
@@ -104,18 +108,65 @@ export default function TrainerClassesPage() {
       meeting_link: formData.meetingLink,
       description: formData.description,
       auto_reminder: formData.autoReminder,
+      is_demo: formData.isDemo,
       trainer_id: '3',
       course_id: '1',
       student_count: 0,
     }
-    const { error } = await supabase.from('classes').insert([payload])
-    if (error) toast.error('Failed to create class: ' + error.message)
-    else {
-      toast.success('Class scheduled successfully!')
-      setIsModalOpen(false)
-      setFormData({ title: '', batch: '', date: '', time: '', platform: 'Zoom', meetingLink: '', description: '', autoReminder: true })
-      fetchClasses()
+
+    const { data: newClass, error } = await supabase
+      .from('classes')
+      .insert([payload])
+      .select()
+      .single()
+
+    if (error) {
+      toast.error('Failed to create class: ' + error.message)
+      setIsSubmitting(false)
+      return
     }
+
+    toast.success('Class scheduled successfully!')
+
+    // Auto send notifications
+    if (newClass) {
+      try {
+        const notifyType = formData.isDemo ? 'demo_class' : 'new_class'
+        const res = await fetch('/api/classes/notify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            classId: newClass.id,
+            type: notifyType
+          })
+        })
+        const result = await res.json()
+        if (result.success) {
+          if (formData.isDemo) {
+            toast.success(
+              `🎓 Demo class notifications sent to ${result.students} students + ${result.leads} leads!`,
+              { duration: 5000 }
+            )
+          } else {
+            toast.success(
+              `📧 Class notification sent to ${result.sent} students!`,
+              { duration: 4000 }
+            )
+          }
+        }
+      } catch (err) {
+        console.error('Notification error:', err)
+        toast.error('Class created but notifications failed')
+      }
+    }
+
+    setIsModalOpen(false)
+    setFormData({
+      title: '', batch: '', date: '', time: '',
+      platform: 'Zoom', meetingLink: '',
+      description: '', autoReminder: true, isDemo: false,
+    })
+    fetchClasses()
     setIsSubmitting(false)
   }
 
@@ -130,54 +181,21 @@ export default function TrainerClassesPage() {
     if (!selectedClass) return
     setIsSendingReminder(true)
     try {
-      const { sendLeadEmail } = await import('@/lib/emailjs-send')
-      const { data: students } = await supabase
-        .from('users')
-        .select('name, email')
-        .eq('role', 'student')
-        .eq('status', 'active')
-
-      if (!students || students.length === 0) {
-        toast.error('No active students found')
-        setIsSendingReminder(false)
-        return
-      }
-
-      const results = await Promise.allSettled(
-        students.map((student: any) =>
-          sendLeadEmail({
-            to_email: student.email,
-            to_name: student.name,
-            subject: `📅 Class Reminder: ${selectedClass.title}`,
-            message: `Hi ${student.name},
-
-This is a reminder for your upcoming class:
-
-🎓 Class: ${selectedClass.title}
-📅 Date: ${new Date(selectedClass.date).toLocaleDateString()}
-⏰ Time: ${selectedClass.time}
-👥 Batch: ${selectedClass.batch}
-💻 Platform: ${selectedClass.platform}
-🔗 Join Link: ${selectedClass.meeting_link}
-
-${selectedClass.description ? `📝 About this class: ${selectedClass.description}` : ''}
-
-Please join on time. See you there!
-
-EduNexus Team`,
-          })
-        )
-      )
-
-      const succeeded = results.filter(r => r.status === 'fulfilled').length
-      const failed = results.filter(r => r.status === 'rejected').length
-
-      if (failed === 0) {
-        toast.success(`✅ Reminder sent to ${succeeded} students!`)
+      const res = await fetch('/api/classes/notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          classId: selectedClass.id,
+          type: 'reminder'
+        })
+      })
+      const result = await res.json()
+      if (result.success) {
+        toast.success(`✅ Reminder sent to ${result.sent} students!`)
+        setIsReminderModalOpen(false)
       } else {
-        toast.success(`Sent to ${succeeded} students`, { description: `${failed} emails failed` })
+        toast.error('Failed: ' + result.error)
       }
-      setIsReminderModalOpen(false)
     } catch (err) {
       console.error('Reminder error:', err)
       toast.error('Failed to send reminders')
@@ -207,7 +225,6 @@ EduNexus Team`,
       }
 
       const { sendLeadEmail } = await import('@/lib/emailjs-send')
-
       const results = await Promise.allSettled(
         students.map((student: any) =>
           sendLeadEmail({
@@ -240,38 +257,90 @@ EduNexus Team`,
   }
 
   const handleSendTelegram = async () => {
-    if (!telegramTitle || !telegramMessage) { toast.error('Please fill in both fields'); return }
+    if (!telegramTitle || !telegramMessage) {
+      toast.error('Please fill in both fields')
+      return
+    }
     setIsSendingTelegram(true)
     try {
-      const res = await fetch('/api/telegram', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: telegramTitle, message: telegramMessage }) })
+      const res = await fetch('/api/telegram', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: telegramTitle, message: telegramMessage })
+      })
       const data = await res.json()
-      if (data.success) { toast.success('Sent to Telegram!'); setTelegramTitle(''); setTelegramMessage(''); setIsTelegramModalOpen(false) }
-      else toast.error('Failed: ' + data.error)
-    } catch { toast.error('Failed to send') }
+      if (data.success) {
+        toast.success('Sent to Telegram!')
+        setTelegramTitle('')
+        setTelegramMessage('')
+        setIsTelegramModalOpen(false)
+      } else {
+        toast.error('Failed: ' + data.error)
+      }
+    } catch {
+      toast.error('Failed to send')
+    }
     setIsSendingTelegram(false)
   }
 
   const handleSendDiscord = async () => {
-    if (!discordTitle || !discordMessage) { toast.error('Please fill in both fields'); return }
+    if (!discordTitle || !discordMessage) {
+      toast.error('Please fill in both fields')
+      return
+    }
     setIsSendingDiscord(true)
     try {
-      const res = await fetch('/api/discord', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: discordTitle, message: discordMessage, type: discordType }) })
+      const res = await fetch('/api/discord', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: discordTitle,
+          message: discordMessage,
+          type: discordType
+        })
+      })
       const data = await res.json()
-      if (data.success) { toast.success('Sent to Discord!'); setDiscordTitle(''); setDiscordMessage(''); setIsDiscordModalOpen(false) }
-      else toast.error('Failed: ' + data.error)
-    } catch { toast.error('Failed to send') }
+      if (data.success) {
+        toast.success('Sent to Discord!')
+        setDiscordTitle('')
+        setDiscordMessage('')
+        setIsDiscordModalOpen(false)
+      } else {
+        toast.error('Failed: ' + data.error)
+      }
+    } catch {
+      toast.error('Failed to send')
+    }
     setIsSendingDiscord(false)
   }
 
   const handleSendWhatsApp = async () => {
-    if (!whatsappTitle || !whatsappMessage) { toast.error('Please fill in both fields'); return }
+    if (!whatsappTitle || !whatsappMessage) {
+      toast.error('Please fill in both fields')
+      return
+    }
     setIsSendingWhatsapp(true)
     try {
-      const res = await fetch('/api/whatsapp/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ to: '7892671224', message: `*${whatsappTitle}*\n\n${whatsappMessage}\n\n_Sent from EduNexus CRM_` }) })
+      const res = await fetch('/api/whatsapp/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: '7892671224',
+          message: `*${whatsappTitle}*\n\n${whatsappMessage}\n\n_Sent from EduNexus CRM_`
+        })
+      })
       const data = await res.json()
-      if (data.success) { toast.success('Sent via WhatsApp!'); setWhatsappTitle(''); setWhatsappMessage(''); setIsWhatsAppModalOpen(false) }
-      else toast.error('Failed: ' + data.error)
-    } catch { toast.error('Failed to send') }
+      if (data.success) {
+        toast.success('Sent via WhatsApp!')
+        setWhatsappTitle('')
+        setWhatsappMessage('')
+        setIsWhatsAppModalOpen(false)
+      } else {
+        toast.error('Failed: ' + data.error)
+      }
+    } catch {
+      toast.error('Failed to send')
+    }
     setIsSendingWhatsapp(false)
   }
 
@@ -322,10 +391,20 @@ EduNexus Team`,
             📱 WhatsApp
           </Button>
           <div className="flex rounded-lg border overflow-hidden">
-            <button onClick={() => setViewMode('calendar')} className={cn("px-3 py-2 text-sm font-medium transition-colors", viewMode === 'calendar' ? "bg-primary text-primary-foreground" : "bg-card hover:bg-muted")}>
+            <button
+              onClick={() => setViewMode('calendar')}
+              className={cn("px-3 py-2 text-sm font-medium transition-colors",
+                viewMode === 'calendar' ? "bg-primary text-primary-foreground" : "bg-card hover:bg-muted"
+              )}
+            >
               <CalendarIcon className="h-4 w-4" />
             </button>
-            <button onClick={() => setViewMode('list')} className={cn("px-3 py-2 text-sm font-medium transition-colors", viewMode === 'list' ? "bg-primary text-primary-foreground" : "bg-card hover:bg-muted")}>
+            <button
+              onClick={() => setViewMode('list')}
+              className={cn("px-3 py-2 text-sm font-medium transition-colors",
+                viewMode === 'list' ? "bg-primary text-primary-foreground" : "bg-card hover:bg-muted"
+              )}
+            >
               <List className="h-4 w-4" />
             </button>
           </div>
@@ -348,7 +427,10 @@ EduNexus Team`,
               const dayClasses = day ? getClassesForDay(day) : []
               const isToday = day === today.getDate()
               return (
-                <div key={index} className={cn("min-h-24 p-2 border rounded-lg", day ? "bg-card" : "bg-muted/30", isToday && "ring-2 ring-primary")}>
+                <div key={index} className={cn("min-h-24 p-2 border rounded-lg",
+                  day ? "bg-card" : "bg-muted/30",
+                  isToday && "ring-2 ring-primary"
+                )}>
                   {day && (
                     <>
                       <span className={cn("text-sm font-medium", isToday && "text-primary")}>{day}</span>
@@ -356,6 +438,7 @@ EduNexus Team`,
                         {dayClasses.map(cls => (
                           <div key={cls.id} className="text-xs p-1 rounded bg-primary/10 text-primary truncate" title={cls.title}>
                             {cls.time} - {cls.title}
+                            {cls.is_demo && ' 🎓'}
                           </div>
                         ))}
                       </div>
@@ -379,8 +462,13 @@ EduNexus Team`,
               <div key={cls.id} className="rounded-xl border bg-card p-4 hover:shadow-md transition-shadow">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div className="flex-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="font-semibold">{cls.title}</h3>
+                      {cls.is_demo && (
+                        <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-600">
+                          🎓 Demo Class
+                        </span>
+                      )}
                       {cls.auto_reminder && (
                         <span className="rounded-full bg-green-500/10 px-2 py-0.5 text-xs font-medium text-green-600 flex items-center gap-1">
                           <Bell className="h-3 w-3" />Auto Reminder: ON
@@ -429,7 +517,12 @@ EduNexus Team`,
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label>Class Title</Label>
-            <Input value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} placeholder="e.g., React Hooks Deep Dive" required />
+            <Input
+              value={formData.title}
+              onChange={e => setFormData({ ...formData, title: e.target.value })}
+              placeholder="e.g., React Hooks Deep Dive"
+              required
+            />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -457,35 +550,108 @@ EduNexus Team`,
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Date</Label>
-              <Input type="date" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} required />
+              <Input
+                type="date"
+                value={formData.date}
+                onChange={e => setFormData({ ...formData, date: e.target.value })}
+                required
+              />
             </div>
             <div className="space-y-2">
               <Label>Time</Label>
-              <Input type="time" value={formData.time} onChange={e => setFormData({ ...formData, time: e.target.value })} required />
+              <Input
+                type="time"
+                value={formData.time}
+                onChange={e => setFormData({ ...formData, time: e.target.value })}
+                required
+              />
             </div>
           </div>
           <div className="space-y-2">
             <Label>Meeting Link</Label>
-            <Input value={formData.meetingLink} onChange={e => setFormData({ ...formData, meetingLink: e.target.value })} placeholder="https://zoom.us/j/..." required />
+            <Input
+              value={formData.meetingLink}
+              onChange={e => setFormData({ ...formData, meetingLink: e.target.value })}
+              placeholder="https://zoom.us/j/..."
+              required
+            />
           </div>
           <div className="space-y-2">
             <Label>Description</Label>
-            <Textarea value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} placeholder="Brief description..." rows={3} />
+            <Textarea
+              value={formData.description}
+              onChange={e => setFormData({ ...formData, description: e.target.value })}
+              placeholder="Brief description..."
+              rows={3}
+            />
           </div>
+
+          {/* Auto Reminder Toggle */}
           <div className="flex items-center justify-between rounded-lg border p-4">
             <div>
               <p className="font-medium text-sm">Auto-send reminder 15 mins before class</p>
               <p className="text-xs text-muted-foreground">Students will receive email reminder automatically</p>
             </div>
-            <button type="button" onClick={() => setFormData({ ...formData, autoReminder: !formData.autoReminder })}
-              className={cn("relative h-6 w-11 rounded-full transition-colors", formData.autoReminder ? "bg-primary" : "bg-muted")}>
-              <span className={cn("absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform", formData.autoReminder && "translate-x-5")} />
+            <button
+              type="button"
+              onClick={() => setFormData({ ...formData, autoReminder: !formData.autoReminder })}
+              className={cn("relative h-6 w-11 rounded-full transition-colors",
+                formData.autoReminder ? "bg-primary" : "bg-muted"
+              )}
+            >
+              <span className={cn("absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform",
+                formData.autoReminder && "translate-x-5"
+              )} />
             </button>
           </div>
+
+          {/* Demo Class Toggle */}
+          <div className="flex items-center justify-between rounded-lg border p-4 bg-amber-50">
+            <div>
+              <p className="font-medium text-sm">🎓 This is a Demo / Free Class</p>
+              <p className="text-xs text-muted-foreground">
+                All leads will also be notified via email in addition to students
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setFormData({ ...formData, isDemo: !formData.isDemo })}
+              className={cn("relative h-6 w-11 rounded-full transition-colors",
+                formData.isDemo ? "bg-amber-500" : "bg-muted"
+              )}
+            >
+              <span className={cn("absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform",
+                formData.isDemo && "translate-x-5"
+              )} />
+            </button>
+          </div>
+
+          {/* Info box when demo is on */}
+          {formData.isDemo && (
+            <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm text-amber-800">
+              ⚡ When you create this class, emails will automatically be sent to:
+              <ul className="mt-1 ml-4 list-disc text-xs space-y-0.5">
+                <li>All active students</li>
+                <li>All leads (except Converted and Lost)</li>
+              </ul>
+            </div>
+          )}
+
+          {/* Info box for normal class */}
+          {!formData.isDemo && (
+            <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 text-sm text-blue-800">
+              📧 When you create this class, emails will automatically be sent to all active students.
+            </div>
+          )}
+
           <div className="flex justify-end gap-3 pt-4">
             <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>Cancel</Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Creating...</> : 'Create Class'}
+              {isSubmitting ? (
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Creating & Notifying...</>
+              ) : (
+                formData.isDemo ? '🎓 Create Demo Class' : '📅 Create Class'
+              )}
             </Button>
           </div>
         </form>
@@ -511,7 +677,8 @@ EduNexus Team`,
               <Button onClick={handleSendReminder} disabled={isSendingReminder}>
                 {isSendingReminder
                   ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Sending emails...</>
-                  : <><Mail className="h-4 w-4 mr-2" />Send Real Emails</>}
+                  : <><Mail className="h-4 w-4 mr-2" />Send Reminder Emails</>
+                }
               </Button>
             </div>
           </div>
@@ -523,7 +690,9 @@ EduNexus Team`,
         <div className="space-y-4">
           <div className="flex items-center gap-2 p-3 bg-orange-50 rounded-lg">
             <span className="text-2xl">📧</span>
-            <p className="text-sm text-orange-700">Real emails will be sent to <strong>all active students</strong> via EmailJS</p>
+            <p className="text-sm text-orange-700">
+              Real emails will be sent to <strong>all active students</strong> via EmailJS
+            </p>
           </div>
           <div className="space-y-2">
             <Label>Subject</Label>
@@ -551,7 +720,8 @@ EduNexus Team`,
             >
               {isSendingBulkEmail
                 ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Sending to all students...</>
-                : <><Mail className="h-4 w-4 mr-2" />Send to All Students</>}
+                : <><Mail className="h-4 w-4 mr-2" />Send to All Students</>
+              }
             </Button>
           </div>
         </div>
@@ -574,8 +744,15 @@ EduNexus Team`,
           </div>
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setIsTelegramModalOpen(false)}>Cancel</Button>
-            <Button onClick={handleSendTelegram} disabled={isSendingTelegram || !telegramTitle || !telegramMessage} className="bg-blue-500 hover:bg-blue-600 text-white">
-              {isSendingTelegram ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Sending...</> : <><Send className="h-4 w-4 mr-2" />Send to Telegram</>}
+            <Button
+              onClick={handleSendTelegram}
+              disabled={isSendingTelegram || !telegramTitle || !telegramMessage}
+              className="bg-blue-500 hover:bg-blue-600 text-white"
+            >
+              {isSendingTelegram
+                ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Sending...</>
+                : <><Send className="h-4 w-4 mr-2" />Send to Telegram</>
+              }
             </Button>
           </div>
         </div>
@@ -590,7 +767,11 @@ EduNexus Team`,
           </div>
           <div className="space-y-2">
             <Label>Type</Label>
-            <select value={discordType} onChange={e => setDiscordType(e.target.value)} className="w-full px-3 py-2 border rounded-lg text-sm">
+            <select
+              value={discordType}
+              onChange={e => setDiscordType(e.target.value)}
+              className="w-full px-3 py-2 border rounded-lg text-sm"
+            >
               <option value="announcement">📢 Announcement</option>
               <option value="class">📚 Class Update</option>
               <option value="assignment">📝 Assignment</option>
@@ -607,8 +788,15 @@ EduNexus Team`,
           </div>
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setIsDiscordModalOpen(false)}>Cancel</Button>
-            <Button onClick={handleSendDiscord} disabled={isSendingDiscord || !discordTitle || !discordMessage} className="bg-indigo-600 text-white">
-              {isSendingDiscord ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Sending...</> : <>💬 Send to Discord</>}
+            <Button
+              onClick={handleSendDiscord}
+              disabled={isSendingDiscord || !discordTitle || !discordMessage}
+              className="bg-indigo-600 text-white"
+            >
+              {isSendingDiscord
+                ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Sending...</>
+                : <>💬 Send to Discord</>
+              }
             </Button>
           </div>
         </div>
@@ -631,8 +819,15 @@ EduNexus Team`,
           </div>
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setIsWhatsAppModalOpen(false)}>Cancel</Button>
-            <Button onClick={handleSendWhatsApp} disabled={isSendingWhatsapp || !whatsappTitle || !whatsappMessage} className="bg-green-600 text-white">
-              {isSendingWhatsapp ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Sending...</> : <>📱 Send WhatsApp</>}
+            <Button
+              onClick={handleSendWhatsApp}
+              disabled={isSendingWhatsapp || !whatsappTitle || !whatsappMessage}
+              className="bg-green-600 text-white"
+            >
+              {isSendingWhatsapp
+                ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Sending...</>
+                : <>📱 Send WhatsApp</>
+              }
             </Button>
           </div>
         </div>

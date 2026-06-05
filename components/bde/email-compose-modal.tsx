@@ -17,17 +17,10 @@ interface EmailComposeModalProps {
   onClose: () => void;
   lead: Pick<Lead, 'name' | 'email' | 'courseInterest'> | null;
   initialBody?: string;
-  /** Called after EmailJS successfully sends (e.g. log activity). */
   onSent?: (subject: string, body: string) => void;
 }
 
-export function EmailComposeModal({
-  open,
-  onClose,
-  lead,
-  initialBody,
-  onSent,
-}: EmailComposeModalProps) {
+export function EmailComposeModal({ open, onClose, lead, initialBody, onSent }: EmailComposeModalProps) {
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
   const [emailSending, setEmailSending] = useState(false);
@@ -41,7 +34,6 @@ export function EmailComposeModal({
 
   const sendEmail = async () => {
     if (!lead || !subject.trim()) return;
-
     setEmailSending(true);
     try {
       await sendLeadEmail({
@@ -55,7 +47,6 @@ export function EmailComposeModal({
       onClose();
     } catch (error) {
       toast.error(getEmailjsErrorMessage(error));
-      console.error('EmailJS error:', error);
     }
     setEmailSending(false);
   };
@@ -74,29 +65,14 @@ export function EmailComposeModal({
           </div>
           <div className="space-y-2">
             <Label>Body</Label>
-            <Textarea
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              rows={10}
-              className="font-mono text-sm"
-            />
+            <Textarea value={body} onChange={(e) => setBody(e.target.value)} rows={10} className="font-mono text-sm" />
           </div>
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={onClose} disabled={emailSending}>
-              Cancel
-            </Button>
+            <Button variant="outline" onClick={onClose} disabled={emailSending}>Cancel</Button>
             <Button onClick={sendEmail} disabled={emailSending}>
-              {emailSending ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Sending...
-                </>
-              ) : (
-                <>
-                  <Send className="h-4 w-4 mr-2" />
-                  Send
-                </>
-              )}
+              {emailSending
+                ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Sending...</>
+                : <><Send className="h-4 w-4 mr-2" />Send</>}
             </Button>
           </div>
         </div>

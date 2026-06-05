@@ -9,7 +9,9 @@ import {
   Users,
   BarChart3,
   Clock,
+  Share2,
 } from 'lucide-react';
+
 
 function BDELayoutContent({ children }: { children: React.ReactNode }) {
   const { followUpCount, newLeadCount, leads } = useLeads();
@@ -34,6 +36,11 @@ function BDELayoutContent({ children }: { children: React.ReactNode }) {
       href: '/bde/follow-ups',
       icon: <Clock className="h-5 w-5" />,
       badge: followUpCount,
+    },
+    {
+      label: 'Social Media',
+      href: '/bde/social-media',
+      icon: <Share2 className="h-5 w-5" />,
     },
   ];
 
