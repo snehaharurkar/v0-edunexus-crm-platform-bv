@@ -1,8 +1,6 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect } from "react"
-import { DashboardLayout } from "@/components/shared/dashboard-layout"
-import { studentNavItems } from "@/lib/nav-items"
 import { supabase } from "@/lib/supabase"
 import { Play, Clock, Video, Calendar, ExternalLink, Bell } from "lucide-react"
 import { toast } from "sonner"
@@ -54,8 +52,7 @@ export default function StudentClassesPage() {
   const past = classes.filter(cls => new Date(cls.date) < today).length
 
   return (
-    <DashboardLayout navItems={studentNavItems} roleLabel="Student">
-      <div className="space-y-6">
+<div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold">My Classes</h1>
           <p className="text-muted-foreground mt-1">View all your scheduled and past classes</p>
@@ -170,6 +167,5 @@ export default function StudentClassesPage() {
           </div>
         )}
       </div>
-    </DashboardLayout>
-  )
+)
 }

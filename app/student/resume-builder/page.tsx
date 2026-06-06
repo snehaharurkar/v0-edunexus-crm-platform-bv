@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import {
   User,
@@ -18,8 +18,6 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { DashboardLayout } from "@/components/shared/dashboard-layout"
-import { studentNavItems } from "@/lib/nav-items"
 import { useState, useEffect } from "react"
 
 function Skeleton({ className }: { className?: string }) {
@@ -149,21 +147,18 @@ export default function ResumeBuilder() {
 
   if (isLoading) {
     return (
-      <DashboardLayout navItems={studentNavItems} roleLabel="Student">
-        <div className="space-y-6">
+<div className="space-y-6">
           <Skeleton className="h-8 w-48" />
           <div className="grid gap-6 lg:grid-cols-2">
             <Skeleton className="h-[600px]" />
             <Skeleton className="h-[600px]" />
           </div>
         </div>
-      </DashboardLayout>
-    )
+)
   }
 
   return (
-    <DashboardLayout navItems={studentNavItems} roleLabel="Student">
-      <div className="space-y-6">
+<div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">Resume Builder</h1>
           <Button className="gap-2">
@@ -475,7 +470,7 @@ export default function ResumeBuilder() {
                     <span className="text-xs text-gray-600">{edu.graduationDate}</span>
                   </div>
                   <p className="text-sm text-gray-700">
-                    {edu.institution}, {edu.location} • GPA: {edu.gpa}
+                    {edu.institution}, {edu.location} â€¢ GPA: {edu.gpa}
                   </p>
                 </div>
               ))}
@@ -494,6 +489,6 @@ export default function ResumeBuilder() {
           </div>
         </div>
       </div>
-    </DashboardLayout>
-  )
+)
 }
+

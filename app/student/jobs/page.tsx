@@ -17,6 +17,7 @@ interface Job {
   companyLogo: string | null
   isRemote: boolean
   source?: string
+  
 }
 
 export default function JobsPage() {
@@ -31,7 +32,8 @@ export default function JobsPage() {
     setLoading(true)
     try {
       const res = await fetch(
-        `/api/jobs?query=${encodeURIComponent(search)}&location=${encodeURIComponent(location)}`
+        `/api/jobs?query=${encodeURIComponent(search)}&location=${encodeURIComponent(location)}`,
+        { cache: 'no-store' }
       )
       const data = await res.json()
       setJobs(data.jobs || [])
@@ -202,15 +204,9 @@ export default function JobsPage() {
                       <p className="text-xs text-muted-foreground mt-0.5">{job.company}</p>
                     </div>
                   </div>
-                  <span
-                    className={`text-xs px-2 py-1 rounded-full font-medium shrink-0 ${
-                      score >= 85
-                        ? 'bg-green-100 text-green-700'
-                        : score >= 70
-                        ? 'bg-yellow-100 text-yellow-700'
-                        : 'bg-red-100 text-red-700'
-                    }`}
-                  >
+                  <span className={`text-xs px-2 py-1 rounded-full font-medium shrink-0 ${
+                    score >= 85 ? 'bg-green-100 text-green-700' : score >= 70 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'
+                  }`}>
                     {score}% Match
                   </span>
                 </div>
@@ -218,40 +214,31 @@ export default function JobsPage() {
                 {/* Badges */}
                 <div className="flex flex-wrap gap-2">
                   <span className="flex items-center gap-1 text-xs px-2.5 py-1 bg-muted rounded-full text-muted-foreground">
-                    <MapPin className="h-3 w-3" />
-                    {job.location}
+                    <MapPin className="h-3 w-3" />{job.location}
                   </span>
                   <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${getTypeBadgeColor(job.type)}`}>
                     {formatType(job.type)}
                   </span>
                   {job.isRemote && (
-                    <span className="text-xs px-2.5 py-1 bg-purple-100 text-purple-700 rounded-full font-medium">
-                      Remote
-                    </span>
+                    <span className="text-xs px-2.5 py-1 bg-purple-100 text-purple-700 rounded-full font-medium">Remote</span>
                   )}
                   {job.salary !== 'Not disclosed' && (
                     <span className="flex items-center gap-1 text-xs px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-full font-medium">
-                      <IndianRupee className="h-3 w-3" />
-                      {job.salary}
+                      <IndianRupee className="h-3 w-3" />{job.salary}
                     </span>
                   )}
                   {job.source && (
-                    <span className="text-xs px-2.5 py-1 bg-slate-100 text-slate-500 rounded-full">
-                      via {job.source}
-                    </span>
+                    <span className="text-xs px-2.5 py-1 bg-slate-100 text-slate-500 rounded-full">via {job.source}</span>
                   )}
                 </div>
 
                 {/* Description */}
-                <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
-                  {job.description}
-                </p>
+                <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">{job.description}</p>
 
                 {/* Footer */}
                 <div className="flex items-center justify-between pt-1">
                   <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Clock className="h-3 w-3" />
-                    {getTimeAgo(job.postedAt)}
+                    <Clock className="h-3 w-3" />{getTimeAgo(job.postedAt)}
                   </span>
                   <div className="flex gap-2">
                     <button
@@ -260,14 +247,14 @@ export default function JobsPage() {
                     >
                       View Details
                     </button>
-                    
-                     href={job.applyUrl}
+                    <a
+                      href={job.applyUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="px-3 py-1.5 bg-primary text-primary-foreground rounded-lg text-xs font-medium flex items-center gap-1 hover:opacity-90 transition-opacity"
-                    
+                    >
                       Apply Now <ExternalLink className="h-3 w-3" />
-                    <a></a>
+                    </a>
                   </div>
                 </div>
               </div>
@@ -302,9 +289,7 @@ export default function JobsPage() {
                 )}
                 <div>
                   <h2 className="font-bold text-lg leading-tight">{selectedJob.title}</h2>
-                  <p className="text-sm text-muted-foreground">
-                    {selectedJob.company} · {selectedJob.location}
-                  </p>
+                  <p className="text-sm text-muted-foreground">{selectedJob.company} · {selectedJob.location}</p>
                 </div>
               </div>
               <button
@@ -317,38 +302,29 @@ export default function JobsPage() {
 
             {/* Modal Body */}
             <div className="p-6 space-y-5">
-              {/* Badges */}
               <div className="flex flex-wrap gap-2">
                 <span className="flex items-center gap-1 text-sm px-3 py-1.5 bg-muted rounded-full text-muted-foreground">
-                  <MapPin className="h-3.5 w-3.5" />
-                  {selectedJob.location}
+                  <MapPin className="h-3.5 w-3.5" />{selectedJob.location}
                 </span>
                 <span className={`text-sm px-3 py-1.5 rounded-full font-medium ${getTypeBadgeColor(selectedJob.type)}`}>
                   {formatType(selectedJob.type)}
                 </span>
                 {selectedJob.salary !== 'Not disclosed' && (
                   <span className="flex items-center gap-1 text-sm px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-full font-medium">
-                    <IndianRupee className="h-3.5 w-3.5" />
-                    {selectedJob.salary}
+                    <IndianRupee className="h-3.5 w-3.5" />{selectedJob.salary}
                   </span>
                 )}
                 {selectedJob.isRemote && (
-                  <span className="text-sm px-3 py-1.5 bg-purple-100 text-purple-700 rounded-full font-medium">
-                    Remote
-                  </span>
+                  <span className="text-sm px-3 py-1.5 bg-purple-100 text-purple-700 rounded-full font-medium">Remote</span>
                 )}
                 <span className="flex items-center gap-1 text-sm px-3 py-1.5 bg-muted rounded-full text-muted-foreground">
-                  <Clock className="h-3.5 w-3.5" />
-                  {getTimeAgo(selectedJob.postedAt)}
+                  <Clock className="h-3.5 w-3.5" />{getTimeAgo(selectedJob.postedAt)}
                 </span>
                 {selectedJob.source && (
-                  <span className="text-sm px-3 py-1.5 bg-slate-100 text-slate-500 rounded-full">
-                    via {selectedJob.source}
-                  </span>
+                  <span className="text-sm px-3 py-1.5 bg-slate-100 text-slate-500 rounded-full">via {selectedJob.source}</span>
                 )}
               </div>
 
-              {/* Description */}
               <div>
                 <h3 className="font-semibold mb-2">Job Description</h3>
                 <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
@@ -356,7 +332,6 @@ export default function JobsPage() {
                 </p>
               </div>
 
-              {/* Requirements */}
               {selectedJob.requirements && selectedJob.requirements.length > 0 && (
                 <div>
                   <h3 className="font-semibold mb-2">Requirements</h3>
@@ -371,15 +346,14 @@ export default function JobsPage() {
                 </div>
               )}
 
-              {/* Apply Button */}
-              
+              <a
                 href={selectedJob.applyUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 w-full py-3 bg-primary text-primary-foreground rounded-xl font-semibold hover:opacity-90 transition-opacity"
-              
+              >
                 Apply Now <ExternalLink className="h-4 w-4" />
-              <a></a>
+              </a>
             </div>
           </div>
         </div>

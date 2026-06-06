@@ -15,7 +15,7 @@ export async function GET(request: Request) {
           'x-rapidapi-host': 'jsearch.p.rapidapi.com',
           'x-rapidapi-key': jsearchKey || '',
         },
-        next: { revalidate: 3600 }
+        cache: 'no-store'
       }
     )
 
@@ -36,7 +36,19 @@ export async function GET(request: Request) {
           ? `₹${Math.round(job.job_min_salary).toLocaleString()} - ₹${Math.round(job.job_max_salary).toLocaleString()}`
           : 'Not disclosed',
         postedAt: job.job_posted_at_datetime_utc || '',
-        applyUrl: job.job_apply_link || '#',
+        applyUrl: (() => {
+          const raw = job.job_apply_link || ''
+          console.log('RAW apply link:', raw.substring(0, 100))
+          if (!raw) return `https://www.google.com/search?q=${encodeURIComponent(job.job_title + ' ' + job.employer_name)}`
+          if (raw.startsWith('http')) return raw
+          // Extract URL from: href=https://...target=
+          const match = raw.match(/href=["']?(https?:\/\/[^\s"']+?)(?:target|rel|class|["'\s])/i)
+          if (match) return match[1]
+          // Fallback: grab first http URL in the string
+          const urlMatch = raw.match(/https?:\/\/[^\s"']+/)
+          if (urlMatch) return urlMatch[0]
+          return `https://www.google.com/search?q=${encodeURIComponent(job.job_title + ' ' + job.employer_name)}`
+        })(),
         companyLogo: job.employer_logo || null,
         isRemote: job.job_is_remote || false,
         source: job.job_publisher || 'JSearch',
@@ -60,7 +72,7 @@ export async function GET(request: Request) {
 
     const response = await fetch(
       `https://api.adzuna.com/v1/api/jobs/in/search/1?app_id=${appId}&app_key=${apiKey}&results_per_page=20&what=${encodeURIComponent(query)}&where=${encodeURIComponent(location)}&content-type=application/json`,
-      { next: { revalidate: 86400 } }
+      { cache: 'no-store' }
     )
 
     const data = await response.json()

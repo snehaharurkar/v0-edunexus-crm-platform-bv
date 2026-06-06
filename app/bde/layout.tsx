@@ -1,5 +1,4 @@
 "use client";
-
 import React from 'react';
 import { DashboardLayout } from '@/components/shared/dashboard-layout';
 import { LeadsProvider, useLeads } from '@/contexts/leads-context';
@@ -10,12 +9,11 @@ import {
   BarChart3,
   Clock,
   Share2,
+  MessageSquare,
 } from 'lucide-react';
-
 
 function BDELayoutContent({ children }: { children: React.ReactNode }) {
   const { followUpCount, newLeadCount, leads } = useLeads();
-
   const bdeNavItems = [
     {
       label: 'Pipeline',
@@ -41,6 +39,11 @@ function BDELayoutContent({ children }: { children: React.ReactNode }) {
       label: 'Social Media',
       href: '/bde/social-media',
       icon: <Share2 className="h-5 w-5" />,
+    },
+    {
+      label: 'Queries',
+      href: '/bde/queries',
+      icon: <MessageSquare className="h-5 w-5" />,
     },
   ];
 
