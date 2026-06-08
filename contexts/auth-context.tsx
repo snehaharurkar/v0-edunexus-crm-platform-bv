@@ -8,7 +8,7 @@ import React, {
   useState,
 } from 'react';
 import { mockUsers, type User, type UserRole } from '@/lib/mock-data';
-import { supabase } from '@/lib/supabase';
+import { getSupabaseClient } from '@/lib/supabase';
 
 const AUTH_KEYS = {
   user: 'user',
@@ -91,7 +91,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // 2. Check Supabase users (real signups)
       try {
-        const { data } = await supabase
+        const supabaseClient = getSupabaseClient();
+        const { data } = await supabaseClient
           .from('users')
           .select('*')
           .eq('email', email)
