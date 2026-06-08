@@ -153,20 +153,31 @@ export default function MyLeadsPage() {
   const handleSaveEdit = async () => {
     if (!editLead) return;
     setEditSaving(true);
-    updateLead(editLead.id, {
-      name: editForm.name, email: editForm.email, phone: editForm.phone,
-      courseInterest: editForm.courseInterest, source: editForm.source as Lead['source'],
-      priority: editForm.priority as Lead['priority'], notes: editForm.notes,
-    });
-    toast.success('Lead updated!');
-    setEditSaving(false);
-    setEditLead(null);
+    try {
+      await updateLead(editLead.id, {
+        name: editForm.name, email: editForm.email, phone: editForm.phone,
+        courseInterest: editForm.courseInterest, source: editForm.source as Lead['source'],
+        priority: editForm.priority as Lead['priority'], notes: editForm.notes,
+      });
+      toast.success('Lead updated!');
+      setEditLead(null);
+    } catch (err) {
+      toast.error('Failed to update lead');
+      console.error('Edit error:', err);
+    } finally {
+      setEditSaving(false);
+    }
   };
 
-  const handleDelete = (id: string) => {
-    deleteLead(id);
-    toast.success('Lead deleted');
-    setDeletingId(null);
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteLead(id);
+      toast.success('Lead deleted');
+      setDeletingId(null);
+    } catch (err) {
+      toast.error('Failed to delete lead');
+      console.error('Delete error:', err);
+    }
   };
 
   const columns = [
@@ -453,14 +464,21 @@ export default function MyLeadsPage() {
         <div className="space-y-4">
           <p className="text-muted-foreground">Are you sure you want to delete <strong>{selectedLeads.length} leads</strong>? This cannot be undone.</p>
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setDeletingBulk(false)}>Cancel</Button>
-            <Button variant="destructive" onClick={() => {
-              selectedLeads.forEach(lead => deleteLead(lead.id));
-              toast.success(`${selectedLeads.length} leads deleted`);
-              setSelectedLeads([]);
-              setDeletingBulk(false);
+            <Button variant="outline" onClick={() => setDeletingBulk(false)} disabled={deletingBulk}>Cancel</Button>
+            <Button variant="destructive" disabled={deletingBulk} onClick={async () => {
+              setDeletingBulk(true);
+              try {
+                await Promise.all(selectedLeads.map(lead => deleteLead(lead.id)));
+                toast.success(`${selectedLeads.length} leads deleted`);
+                setSelectedLeads([]);
+                setDeletingBulk(false);
+              } catch (err) {
+                toast.error('Failed to delete some leads');
+                console.error('Bulk delete error:', err);
+                setDeletingBulk(false);
+              }
             }}>
-              <Trash2 className="h-4 w-4 mr-2" />Delete All {selectedLeads.length}
+              {deletingBulk ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Deleting...</> : <><Trash2 className="h-4 w-4 mr-2" />Delete All {selectedLeads.length}</>}
             </Button>
           </div>
         </div>

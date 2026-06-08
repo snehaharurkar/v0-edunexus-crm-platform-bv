@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useState, useRef } from 'react'
 import { Upload, X, Check, AlertCircle, FileSpreadsheet, Loader2 } from 'lucide-react'
@@ -19,7 +19,7 @@ interface ImportedLead {
 }
 
 interface ExcelImportProps {
-  addLead: (lead: NewLeadInput) => void
+  addLead: (lead: NewLeadInput) => Promise<any>
 }
 
 export function ExcelImport({ addLead }: ExcelImportProps) {
@@ -58,24 +58,30 @@ export function ExcelImport({ addLead }: ExcelImportProps) {
   const handleImport = async () => {
     setImporting(true)
     let count = 0
-    for (const lead of preview) {
-      addLead({
-        name: lead.name,
-        email: lead.email,
-        phone: lead.phone,
-        source: (lead.source as any) || 'Referral',
-        courseInterest: lead.course,
-        priority: (lead.priority as any) || 'Warm',
-        notes: lead.notes,
-        assignedBde: 'Rahul Sharma',
-      })
-      count++
-      await new Promise(r => setTimeout(r, 50))
+    try {
+      for (const lead of preview) {
+        await addLead({
+          name: lead.name,
+          email: lead.email,
+          phone: lead.phone,
+          source: (lead.source as any) || 'Referral',
+          courseInterest: lead.course,
+          priority: (lead.priority as any) || 'Warm',
+          notes: lead.notes,
+          assignedBde: 'Rahul Sharma',
+        })
+        count++
+        await new Promise(r => setTimeout(r, 50))
+      }
+      setImportedCount(count)
+      setStep('done')
+      toast.success(`${count} leads imported successfully!`)
+    } catch (err) {
+      toast.error('Failed to import some leads')
+      console.error('Import error:', err)
+    } finally {
+      setImporting(false)
     }
-    setImportedCount(count)
-    setStep('done')
-    setImporting(false)
-    toast.success(`${count} leads imported successfully!`)
   }
 
   const handleReset = () => {

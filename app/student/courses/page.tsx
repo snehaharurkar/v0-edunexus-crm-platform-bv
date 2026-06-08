@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useState, useEffect } from "react"
 import { useAuth } from "@/contexts/auth-context"
@@ -66,22 +66,41 @@ export default function StudentCourses() {
   const [couponApplied, setCouponApplied] = useState(false)
 
   useEffect(() => {
-    const fetchCourses = async () => {
+    const fetchCoursesAndPaid = async () => {
       setIsLoading(true)
       const { data, error } = await supabase
         .from('courses')
         .select('*')
         .order('created_at', { ascending: false })
       if (!error && data) setCourses(data)
+      
+      // Fetch paid courses from transactions
+      if (user?.id) {
+        const { data: transactions } = await supabase
+          .from('transactions')
+          .select('*')
+          .eq('student_id', user.id)
+          .eq('status', 'Completed')
+        
+        if (transactions && transactions.length > 0) {
+          const paid: Record<string, number> = {}
+          transactions.forEach((t: any) => {
+            if (t.course_id) {
+              paid[t.course_id] = (paid[t.course_id] || 0) + (t.amount || 0)
+            }
+          })
+          setPaidCourses(paid)
+        }
+      }
       setIsLoading(false)
     }
-    fetchCourses()
+    fetchCoursesAndPaid()
     const channel = supabase
       .channel('student-courses')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'courses' }, fetchCourses)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'courses' }, fetchCoursesAndPaid)
       .subscribe()
     return () => { supabase.removeChannel(channel) }
-  }, [])
+  }, [user?.id])
 
   useEffect(() => {
     const fetchClasses = async () => {
@@ -95,6 +114,33 @@ export default function StudentCourses() {
       .subscribe()
     return () => { supabase.removeChannel(channel) }
   }, [])
+
+  // Listen for transaction changes to update paid courses
+  useEffect(() => {
+    const channel = supabase
+      .channel('student-transactions')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions', filter: `student_id=eq.${user?.id}` }, async () => {
+        if (user?.id) {
+          const { data: transactions } = await supabase
+            .from('transactions')
+            .select('*')
+            .eq('student_id', user.id)
+            .eq('status', 'Completed')
+          
+          if (transactions && transactions.length > 0) {
+            const paid: Record<string, number> = {}
+            transactions.forEach((t: any) => {
+              if (t.course_id) {
+                paid[t.course_id] = (paid[t.course_id] || 0) + (t.amount || 0)
+              }
+            })
+            setPaidCourses(paid)
+          }
+        }
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [user?.id])
 
   const student = {
     name: user?.name || 'Student',

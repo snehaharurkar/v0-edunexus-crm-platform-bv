@@ -13,6 +13,7 @@ import {
   Target,
   GraduationCap,
   UserCheck,
+  Calendar,
 } from 'lucide-react';
 
 const adminNavItems = [
@@ -22,6 +23,7 @@ const adminNavItems = [
   { label: 'Students', href: '/admin/students', icon: <GraduationCap className="h-5 w-5" /> },
   { label: 'Trainers', href: '/admin/trainers', icon: <UserCheck className="h-5 w-5" /> },
   { label: 'Courses', href: '/admin/courses', icon: <BookOpen className="h-5 w-5" /> },
+  { label: 'Classes', href: '/admin/classes', icon: <Calendar className="h-5 w-5" /> },
   { label: 'Analytics', href: '/admin/analytics', icon: <BarChart3 className="h-5 w-5" /> },
   { label: 'AI Settings', href: '/admin/ai-settings', icon: <Sparkles className="h-5 w-5" /> },
   { label: 'Finance', href: '/admin/finance', icon: <DollarSign className="h-5 w-5" /> },

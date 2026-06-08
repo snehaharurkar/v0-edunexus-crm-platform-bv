@@ -53,6 +53,17 @@ export default function CoursesPage() {
 
   useEffect(() => { fetchCourses(); }, []);
 
+  // Real-time updates
+  useEffect(() => {
+    const channel = supabase
+      .channel('courses-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'courses' }, () => {
+        fetchCourses();
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, []);
+
   const handleSave = async () => {
     if (!form.title || !form.trainer) return toast.error('Title and trainer are required');
     const payload = { ...form, price: Number(form.price), batches: Number(form.batches) };
