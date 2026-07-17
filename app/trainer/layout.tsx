@@ -20,7 +20,7 @@ const trainerNavItems = [
 
 export default function TrainerLayout({ children }: { children: React.ReactNode }) {
   return (
-    <DashboardLayout navItems={trainerNavItems} roleLabel="Trainer">
+    <DashboardLayout navItems={trainerNavItems} roleLabel="Trainer" allowedRole="trainer">
       {children}
     </DashboardLayout>
   );

@@ -51,7 +51,7 @@ export default function StudentCourses() {
   }, [])
 
   const student = mockStudents.find((s) => s.email === user?.email) || mockStudents[0]
-  const enrolledCourse = mockCourses.find((c) => c.name === student.course) || mockCourses[0]
+  const enrolledCourse = mockCourses.find((c) => c.title === student.course) || mockCourses[0]
 
   if (isLoading) {
     return (
@@ -83,7 +83,7 @@ export default function StudentCourses() {
                 <BookOpen className="h-8 w-8 text-primary" />
               </div>
               <div>
-                <h2 className="text-xl font-semibold">{enrolledCourse.name}</h2>
+                <h2 className="text-xl font-semibold">{enrolledCourse.title}</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
                   Duration: {enrolledCourse.duration} • Trainer: {enrolledCourse.trainer}
                 </p>

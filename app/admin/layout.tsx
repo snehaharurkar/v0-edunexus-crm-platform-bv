@@ -24,7 +24,7 @@ const adminNavItems = [
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
-    <DashboardLayout navItems={adminNavItems} roleLabel="Admin">
+    <DashboardLayout navItems={adminNavItems} roleLabel="Admin" allowedRole="admin">
       {children}
     </DashboardLayout>
   );

@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/auth-context';
+import type { UserRole } from '@/lib/mock-data';
 import { mockNotifications } from '@/lib/mock-data';
 import {
   Menu,
@@ -18,6 +19,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { toast } from 'sonner';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -37,16 +39,30 @@ interface DashboardLayoutProps {
   children: React.ReactNode;
   navItems: NavItem[];
   roleLabel: string;
+  allowedRole?: UserRole;
 }
 
-export function DashboardLayout({ children, navItems, roleLabel }: DashboardLayoutProps) {
+export function DashboardLayout({ children, navItems, roleLabel, allowedRole }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notifications, setNotifications] = useState(() => mockNotifications);
   const pathname = usePathname();
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const { user, logout, loading } = useAuth();
+  const requiredRole = allowedRole ?? roleLabel.toLowerCase() as UserRole;
 
-  const unreadCount = mockNotifications.filter(n => !n.read).length;
+  useEffect(() => {
+    if (!loading && (!user || user.role !== requiredRole)) {
+      router.replace('/login');
+    }
+  }, [loading, requiredRole, router, user]);
+
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  const markAllNotificationsRead = () => {
+    setNotifications((current) => current.map((notification) => ({ ...notification, read: true })));
+    toast.success('All notifications marked as read');
+  };
 
   const handleLogout = () => {
     logout();
@@ -63,6 +79,14 @@ export function DashboardLayout({ children, navItems, roleLabel }: DashboardLayo
       default: return '📌';
     }
   };
+
+  if (loading || !user || user.role !== requiredRole) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -185,14 +209,18 @@ export function DashboardLayout({ children, navItems, roleLabel }: DashboardLayo
               <DropdownMenuContent align="end" className="w-80">
                 <DropdownMenuLabel className="flex items-center justify-between">
                   <span>Notifications</span>
-                  <Button variant="ghost" size="sm" className="text-xs text-primary">
+                  <Button variant="ghost" size="sm" className="text-xs text-primary" onClick={markAllNotificationsRead}>
                     Mark all as read
                   </Button>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <div className="max-h-80 overflow-y-auto">
-                  {mockNotifications.slice(0, 10).map((notification) => (
-                    <DropdownMenuItem key={notification.id} className="flex gap-3 p-3 cursor-pointer">
+                  {notifications.slice(0, 10).map((notification) => (
+                    <DropdownMenuItem
+                      key={notification.id}
+                      className="flex gap-3 p-3 cursor-pointer"
+                      onClick={() => setNotifications((current) => current.map((item) => item.id === notification.id ? { ...item, read: true } : item))}
+                    >
                       <span className="text-lg">{getNotificationIcon(notification.type)}</span>
                       <div className="flex-1 min-w-0">
                         <p className={cn("text-sm", !notification.read && "font-medium")}>
@@ -209,7 +237,7 @@ export function DashboardLayout({ children, navItems, roleLabel }: DashboardLayo
                   ))}
                 </div>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="justify-center text-primary">
+                <DropdownMenuItem className="justify-center text-primary" onClick={() => setNotificationsOpen(false)}>
                   View all notifications
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -234,11 +262,11 @@ export function DashboardLayout({ children, navItems, roleLabel }: DashboardLayo
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuLabel>My Account</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={() => toast.info('Profile management is not configured in this demo.')}>
                   <User className="mr-2 h-4 w-4" />
                   Profile
                 </DropdownMenuItem>
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={() => toast.info('Role-specific settings are available from the sidebar when configured.')}>
                   <Settings className="mr-2 h-4 w-4" />
                   Settings
                 </DropdownMenuItem>

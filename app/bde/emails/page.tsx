@@ -4,7 +4,8 @@ import { useState, useEffect } from "react"
 import { DashboardLayout } from "@/components/shared/dashboard-layout"
 import { bdeNavItems } from "@/lib/nav-items"
 import { Modal } from "@/components/shared/modal"
-import { mockLeads, mockStudents } from "@/lib/mock-data"
+import { mockStudents } from "@/lib/mock-data"
+import { useLeads } from "@/contexts/lead-context"
 import {
   Mail,
   Send,
@@ -160,6 +161,7 @@ function Skeleton({ className }: { className?: string }) {
 }
 
 export default function BDEEmailsPage() {
+  const { leads } = useLeads()
   const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<"single" | "bulk">("single")
   
@@ -213,7 +215,7 @@ export default function BDEEmailsPage() {
   const getRecipientCount = () => {
     switch (recipientType) {
       case "all_students": return mockStudents.length
-      case "all_leads": return mockLeads.length
+      case "all_leads": return leads.length
       case "specific_course": return 25
       case "specific_batch": return 15
       case "custom": return selectedRecipients.length
@@ -230,7 +232,7 @@ export default function BDEEmailsPage() {
     setIsSending(true)
     await new Promise(resolve => setTimeout(resolve, 1500))
     
-    const lead = mockLeads.find(l => l.id === selectedLead)
+    const lead = leads.find(l => l.id === selectedLead)
     setSentEmails(prev => [{
       id: prev.length + 1,
       to: lead?.email || "",
@@ -275,7 +277,7 @@ export default function BDEEmailsPage() {
     toast.success(`Bulk email sent to ${total} recipients!`)
   }
 
-  const filteredLeads = mockLeads.filter(lead =>
+  const filteredLeads = leads.filter(lead =>
     lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     lead.email.toLowerCase().includes(searchTerm.toLowerCase())
   )
@@ -341,7 +343,7 @@ export default function BDEEmailsPage() {
                     <SelectValue placeholder="Choose a lead..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {mockLeads.map(lead => (
+                    {leads.map(lead => (
                       <SelectItem key={lead.id} value={lead.id}>
                         {lead.name} ({lead.email})
                       </SelectItem>

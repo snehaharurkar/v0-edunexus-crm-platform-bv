@@ -185,17 +185,23 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
 
           {/* Quick Actions */}
           <div className="flex gap-2 mt-6 pt-4 border-t border-border">
-            <Button variant="outline" size="sm" className="flex-1">
-              <Phone className="h-4 w-4 mr-1" />
-              Call
+            <Button variant="outline" size="sm" className="flex-1" asChild>
+              <a href={`tel:${lead.phone.replace(/[^+\\d]/g, '')}`}>
+                <Phone className="h-4 w-4 mr-1" />
+                Call
+              </a>
             </Button>
-            <Button variant="outline" size="sm" className="flex-1">
-              <Mail className="h-4 w-4 mr-1" />
-              Email
+            <Button variant="outline" size="sm" className="flex-1" asChild>
+              <a href={`mailto:${lead.email}`}>
+                <Mail className="h-4 w-4 mr-1" />
+                Email
+              </a>
             </Button>
-            <Button variant="outline" size="sm" className="flex-1">
-              <MessageCircle className="h-4 w-4 mr-1" />
-              WhatsApp
+            <Button variant="outline" size="sm" className="flex-1" asChild>
+              <a href={`https://wa.me/${lead.phone.replace(/[^\\d]/g, '')}`} target="_blank" rel="noopener noreferrer">
+                <MessageCircle className="h-4 w-4 mr-1" />
+                WhatsApp
+              </a>
             </Button>
           </div>
         </div>

@@ -8,19 +8,23 @@ import {
   Users,
   BarChart3,
   Clock,
+  Mail,
+  MessageSquare,
 } from 'lucide-react';
 
 const bdeNavItems = [
   { label: 'Pipeline', href: '/bde/dashboard', icon: <Columns3 className="h-5 w-5" /> },
   { label: 'Add Lead', href: '/bde/add-lead', icon: <UserPlus className="h-5 w-5" /> },
   { label: 'My Leads', href: '/bde/my-leads', icon: <Users className="h-5 w-5" /> },
+  { label: 'Emails', href: '/bde/emails', icon: <Mail className="h-5 w-5" /> },
+  { label: 'Student Queries', href: '/bde/queries', icon: <MessageSquare className="h-5 w-5" /> },
   { label: 'Reports', href: '/bde/reports', icon: <BarChart3 className="h-5 w-5" /> },
   { label: 'Follow-ups', href: '/bde/follow-ups', icon: <Clock className="h-5 w-5" /> },
 ];
 
 export default function BDELayout({ children }: { children: React.ReactNode }) {
   return (
-    <DashboardLayout navItems={bdeNavItems} roleLabel="BDE">
+    <DashboardLayout navItems={bdeNavItems} roleLabel="BDE" allowedRole="bde">
       {children}
     </DashboardLayout>
   );

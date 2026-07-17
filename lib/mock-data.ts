@@ -76,6 +76,9 @@ export interface Job {
   url: string;
   deadline: string;
   postedAt: string;
+  matchPercent: number;
+  experience: string;
+  salary: string;
 }
 
 export interface Transaction {
@@ -204,7 +207,7 @@ export const mockStudents: Student[] = [
 ];
 
 // Mock Jobs
-export const mockJobs: Job[] = [
+const jobListings: Omit<Job, 'matchPercent' | 'experience' | 'salary'>[] = [
   { id: '1', title: 'Frontend Developer', company: 'TechCorp India', location: 'Bangalore', skills: ['React', 'JavaScript', 'CSS'], type: 'Full-time', url: 'https://example.com/job1', deadline: '2024-04-15', postedAt: '2024-03-25' },
   { id: '2', title: 'Python Developer', company: 'DataWise Analytics', location: 'Hyderabad', skills: ['Python', 'Django', 'PostgreSQL'], type: 'Full-time', url: 'https://example.com/job2', deadline: '2024-04-20', postedAt: '2024-03-26' },
   { id: '3', title: 'Data Scientist', company: 'AI Solutions Pvt Ltd', location: 'Mumbai', skills: ['Python', 'Machine Learning', 'TensorFlow'], type: 'Full-time', url: 'https://example.com/job3', deadline: '2024-04-18', postedAt: '2024-03-24' },
@@ -216,6 +219,13 @@ export const mockJobs: Job[] = [
   { id: '9', title: 'Data Analyst Intern', company: 'InsightCo', location: 'Remote', skills: ['Python', 'SQL', 'Tableau'], type: 'Internship', url: 'https://example.com/job9', deadline: '2024-04-08', postedAt: '2024-03-28' },
   { id: '10', title: 'DevOps Engineer', company: 'InfraTech', location: 'Noida', skills: ['AWS', 'Kubernetes', 'CI/CD'], type: 'Full-time', url: 'https://example.com/job10', deadline: '2024-04-28', postedAt: '2024-03-20' },
 ];
+
+export const mockJobs: Job[] = jobListings.map((job, index) => ({
+  ...job,
+  matchPercent: Math.max(55, 92 - index * 4),
+  experience: index % 3 === 0 ? '0-2 years' : '2-4 years',
+  salary: index % 3 === 0 ? '₹4-7 LPA' : '₹6-12 LPA',
+}));
 
 // Mock Transactions
 export const mockTransactions: Transaction[] = [

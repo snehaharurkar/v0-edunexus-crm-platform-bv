@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useRouter } from 'next/navigation';
-import { mockLeads, type Lead } from '@/lib/mock-data';
+import { type Lead } from '@/lib/mock-data';
+import { useLeads } from '@/contexts/lead-context';
 import { StatusBadge, getSourceBadgeVariant, getAIScoreBadge } from '@/components/shared/badge';
 import { cn } from '@/lib/utils';
 import { Phone, Mail, MessageCircle, Calendar } from 'lucide-react';
@@ -109,17 +110,8 @@ function LeadCard({ lead, onClick }: { lead: Lead; onClick: () => void }) {
 }
 
 export default function BDEPipeline() {
-  const [loading, setLoading] = useState(true);
-  const [leads, setLeads] = useState<Lead[]>([]);
+  const { leads, ready } = useLeads();
   const router = useRouter();
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setLeads(mockLeads);
-      setLoading(false);
-    }, 1000);
-    return () => clearTimeout(timer);
-  }, []);
 
   const getLeadsByStatus = (status: Lead['status']) => {
     return leads.filter(lead => lead.status === status);
@@ -139,7 +131,7 @@ export default function BDEPipeline() {
     return colors[stage] || 'bg-gray-500';
   };
 
-  if (loading) {
+  if (!ready) {
     return (
       <div className="space-y-4">
         <div>

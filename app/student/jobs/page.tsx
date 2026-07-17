@@ -194,7 +194,7 @@ export default function StudentJobs() {
 
               <div className="mt-4 flex items-center justify-between border-t pt-4">
                 <span className="text-xs text-muted-foreground">
-                  Posted {job.postedDate}
+                  Posted {job.postedAt}
                 </span>
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm" className="gap-1">

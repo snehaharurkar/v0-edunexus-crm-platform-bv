@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { mockCourses } from '@/lib/mock-data';
+import { useLeads } from '@/contexts/lead-context';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,12 +26,13 @@ const leadSources = [
   'Website',
   'Google Ads',
   'Referral',
-];
+ ] as const;
 
-const priorities = ['Hot', 'Warm', 'Cold'];
+const priorities = ['Hot', 'Warm', 'Cold'] as const;
 
 export default function AddLeadPage() {
   const router = useRouter();
+  const { addLead } = useLeads();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     fullName: '',
@@ -47,15 +49,18 @@ export default function AddLeadPage() {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    addLead({
+      name: formData.fullName, email: formData.email, phone: formData.phone,
+      courseInterest: formData.courseInterest, source: formData.source as typeof leadSources[number],
+      priority: formData.priority as typeof priorities[number], assignedBde: formData.assignedBde, notes: formData.notes,
+    });
 
     toast.success('Lead created successfully!', {
       description: `${formData.fullName} has been added to the pipeline.`,
     });
 
     setIsSubmitting(false);
-    router.push('/bde/dashboard');
+    router.push('/bde/my-leads');
   };
 
   return (
